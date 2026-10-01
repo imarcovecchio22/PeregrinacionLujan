@@ -2,7 +2,16 @@ import { describe, expect, it } from "vitest";
 import { PUESTOS_DEFAULT } from "@/domain/puestos-default";
 import type { PuestoDom } from "@/domain/tipos";
 import type { FilaPuesto, RegistroApi } from "./tipos-api";
-import { agrupar, armarFila, claveCambio, coincide, combinar, hrefTelefono, type CambioLocal } from "./vista-puesto";
+import {
+  agrupar,
+  armarFila,
+  claveCambio,
+  coincide,
+  combinar,
+  hrefTelefono,
+  puestoAbandono,
+  type CambioLocal,
+} from "./vista-puesto";
 
 const puestos: PuestoDom[] = PUESTOS_DEFAULT.map((p) => ({ ...p, id: p.nombre }));
 const laReja = puestos.find((p) => p.nombre === "La Reja")!;
@@ -57,6 +66,19 @@ describe("agrupar en La Reja", () => {
     expect(conError.COMPLETOS.map((f) => f.caminante.numero)).toEqual([1]);
   });
 
+  it("una fila que se está guardando queda fija en su grupo", () => {
+    const fijas = agrupar(filas, new Set(), new Map([["c2", "FALTAN_LLEGAR" as const]]));
+    expect(fijas.FALTAN_LLEGAR.map((f) => f.caminante.numero)).toEqual([2, 4, 5]);
+    expect(fijas.EN_EL_PUESTO).toEqual([]);
+  });
+
+  it("Abandonó: tras este puesto si ya ingresó o parte de acá; si no, tras el anterior", () => {
+    const fila = (n: number) => filas.find((f) => f.caminante.numero === n)!;
+    expect(puestoAbandono(fila(2), laReja, puestos).nombre).toBe("La Reja"); // ingresó
+    expect(puestoAbandono(fila(4), laReja, puestos).nombre).toBe("La Reja"); // parte de acá
+    expect(puestoAbandono(fila(5), laReja, puestos).nombre).toBe("Merlo"); // no llegó
+  });
+
   it("quien parte del puesto solo tiene pendiente la Salida", () => {
     expect(filas.find((f) => f.caminante.numero === 4)!.pendientes).toEqual(["SALIDA"]);
     expect(filas.find((f) => f.caminante.numero === 5)!.pendientes).toEqual(["INGRESO", "SALIDA"]);
@@ -72,6 +94,14 @@ describe("combinar cambios locales", () => {
       [claveCambio("c1", "INGRESO"), { accion: "borrar", registro: base[0].registros[0] }],
     ]);
     expect(combinar(base, cambios)[0].registros.map((r) => r.id)).toEqual(["nuevo"]);
+  });
+
+  it("un abandono pendiente se refleja en el caminante", () => {
+    const base = [fila(1, "Liniers")];
+    const cambios = new Map<string, CambioLocal>([
+      [claveCambio("c1", "ABANDONO"), { accion: "abandono", caminanteId: "c1", puestoId: "Merlo" }],
+    ]);
+    expect(combinar(base, cambios)[0].caminante.abandonoTrasPuestoId).toBe("Merlo");
   });
 });
 

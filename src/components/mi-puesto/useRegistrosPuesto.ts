@@ -2,8 +2,10 @@
 
 // Estado de la vista "Mi puesto":
 // - datos del servidor, refrescados cada 20 s (y al volver a la pestaña o recuperar señal);
-// - cambios locales que se muestran al instante y se envían en orden por caminante+tipo;
-// - si un envío falla queda marcado con error para reintentar (nunca se pierde en silencio).
+// - cambios locales (registros y abandono) que se muestran al instante y se envían en orden
+//   por caminante+tipo;
+// - si un envío falla queda marcado con error para reintentar (nunca se pierde en silencio);
+// - lo recién confirmado queda marcado unos segundos ("✓ Guardado").
 // Fase 2: persistir `cambios` en el dispositivo para tener modo offline real.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -11,9 +13,10 @@ import { horaEditada } from "@/domain/hora";
 import type { TipoRegistro } from "@/domain/tipos";
 import * as api from "@/lib/api-cliente";
 import type { DatosPuesto, RegistroApi } from "@/lib/tipos-api";
-import { claveCambio, combinar, type CambioLocal } from "@/lib/vista-puesto";
+import { caminanteDe, claveDe, combinar, type CambioLocal } from "@/lib/vista-puesto";
 
 const REFRESCO_MS = 20_000;
+const RECIEN_GUARDADO_MS = 2_500;
 
 export interface EstadoCambio {
   cambio: CambioLocal;
@@ -33,17 +36,40 @@ export function useRegistrosPuesto(inicial: DatosPuesto, cargadoPor: string) {
   const puestoId = inicial.puesto.id;
   const [datos, setDatos] = useState(inicial);
   const [cambios, setCambios] = useState<Map<string, EstadoCambio>>(() => new Map());
+  /** Claves (caminante:tipo) confirmadas hace instantes. */
+  const [recientes, setRecientes] = useState<Set<string>>(() => new Set());
   const [conexion, setConexion] = useState({ ok: true, ultima: inicial.generado });
   const [aviso, setAviso] = useState<Aviso | null>(null);
   const colas = useRef(new Map<string, Promise<void>>());
+  const temporizadores = useRef(new Map<string, ReturnType<typeof setTimeout>>());
   const ultimaConfirmacion = useRef(0);
 
   const avisar = useCallback((a: Omit<Aviso, "id">) => setAviso({ ...a, id: Date.now() }), []);
 
+  const marcarReciente = useCallback((clave: string) => {
+    setRecientes((s) => new Set(s).add(clave));
+    clearTimeout(temporizadores.current.get(clave));
+    temporizadores.current.set(
+      clave,
+      setTimeout(() => {
+        setRecientes((s) => {
+          const n = new Set(s);
+          n.delete(clave);
+          return n;
+        });
+      }, RECIEN_GUARDADO_MS),
+    );
+  }, []);
+
+  useEffect(() => {
+    const t = temporizadores.current;
+    return () => t.forEach(clearTimeout);
+  }, []);
+
   const enviar = useCallback(
     (cambio: CambioLocal) => {
-      const { caminanteId, tipo } = cambio.registro;
-      const clave = claveCambio(caminanteId, tipo);
+      const clave = claveDe(cambio);
+      const caminanteId = caminanteDe(cambio);
       setCambios((m) => new Map(m).set(clave, { cambio, estado: "enviando" }));
 
       const siguiente = (colas.current.get(clave) ?? Promise.resolve()).then(async () => {
@@ -58,17 +84,22 @@ export function useRegistrosPuesto(inicial: DatosPuesto, cargadoPor: string) {
                 texto: `Ya estaba registrado${res.registro.cargadoPor ? ` por ${res.registro.cargadoPor}` : ""}. Se dejó ese registro.`,
               });
             }
-          } else {
+          } else if (cambio.accion === "borrar") {
             await api.borrarRegistro(cambio.registro.id);
+          } else {
+            await api.guardarAbandono(cambio.caminanteId, cambio.puestoId);
           }
           ultimaConfirmacion.current = Date.now();
           setDatos((d) => ({
             ...d,
-            filas: d.filas.map((f) =>
-              f.caminante.id !== caminanteId
-                ? f
-                : { ...f, registros: [...f.registros.filter((r) => r.tipo !== tipo), ...(confirmado ? [confirmado] : [])] },
-            ),
+            filas: d.filas.map((f) => {
+              if (f.caminante.id !== caminanteId) return f;
+              if (cambio.accion === "abandono") {
+                return { ...f, caminante: { ...f.caminante, abandonoTrasPuestoId: cambio.puestoId } };
+              }
+              const tipo = cambio.registro.tipo;
+              return { ...f, registros: [...f.registros.filter((r) => r.tipo !== tipo), ...(confirmado ? [confirmado] : [])] };
+            }),
           }));
           setCambios((m) => {
             if (m.get(clave)?.cambio !== cambio) return m; // hubo un cambio posterior
@@ -76,6 +107,7 @@ export function useRegistrosPuesto(inicial: DatosPuesto, cargadoPor: string) {
             n.delete(clave);
             return n;
           });
+          marcarReciente(clave);
         } catch (e) {
           const err = e instanceof api.ErrorApi ? e : new api.ErrorApi("Error inesperado", true);
           setCambios((m) =>
@@ -87,7 +119,7 @@ export function useRegistrosPuesto(inicial: DatosPuesto, cargadoPor: string) {
       });
       colas.current.set(clave, siguiente);
     },
-    [avisar],
+    [avisar, marcarReciente],
   );
 
   const refrescar = useCallback(async () => {
@@ -155,6 +187,14 @@ export function useRegistrosPuesto(inicial: DatosPuesto, cargadoPor: string) {
     [puestoId, cargadoPor, enviar, avisar],
   );
 
+  const marcarAbandono = useCallback(
+    (caminanteId: string, abandonoPuestoId: string | null, anterior: string | null, descripcion: string) => {
+      enviar({ accion: "abandono", caminanteId, puestoId: abandonoPuestoId });
+      avisar({ texto: descripcion, deshacer: () => enviar({ accion: "abandono", caminanteId, puestoId: anterior }) });
+    },
+    [enviar, avisar],
+  );
+
   const editarHora = useCallback(
     (registro: RegistroApi, hhmm: string) => {
       const hora = horaEditada(new Date(registro.hora), hhmm).toISOString();
@@ -190,11 +230,13 @@ export function useRegistrosPuesto(inicial: DatosPuesto, cargadoPor: string) {
     datos,
     filas,
     cambios,
+    recientes,
     conexion,
     aviso,
     cerrarAviso: () => setAviso(null),
     refrescar,
     marcar,
+    marcarAbandono,
     editarHora,
     borrar,
     reintentar,

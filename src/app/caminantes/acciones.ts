@@ -7,6 +7,7 @@ import { separarTelefonos } from "@/domain/telefonos";
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db";
 import { exigirAcceso } from "@/lib/acceso";
+import { ErrorDominio, guardarAbandono } from "@/lib/registros";
 
 export interface ResultadoForm {
   error?: string;
@@ -84,23 +85,13 @@ export async function guardarCaminante(_prev: ResultadoForm, form: FormData): Pr
 /** Marca (o quita, con puestoId vacío) el abandono "después del puesto X". */
 export async function marcarAbandono(_prev: ResultadoForm, form: FormData): Promise<ResultadoForm> {
   await exigirAcceso();
-  const caminanteId = String(form.get("caminanteId") ?? "");
   const puestoId = String(form.get("puestoId") ?? "") || null;
-  const caminante = await prisma.caminante.findUnique({
-    where: { id: caminanteId },
-    include: { puntoPartida: true, peregrinacion: { include: { puestos: true } } },
-  });
-  if (!caminante) return { error: "El caminante no existe." };
-  if (puestoId) {
-    const puesto = caminante.peregrinacion.puestos.find((p) => p.id === puestoId);
-    if (!puesto || puesto.orden < caminante.puntoPartida.orden) {
-      return { error: "Ese puesto está antes de su punto de partida." };
-    }
+  try {
+    await guardarAbandono(String(form.get("caminanteId") ?? ""), puestoId);
+  } catch (e) {
+    if (e instanceof ErrorDominio) return { error: e.message };
+    throw e;
   }
-  await prisma.caminante.update({
-    where: { id: caminanteId },
-    data: { abandonoTrasPuestoId: puestoId, abandonoHora: puestoId ? new Date() : null },
-  });
   refresh();
   return { ok: puestoId ? "Abandono registrado." : "Abandono quitado." };
 }

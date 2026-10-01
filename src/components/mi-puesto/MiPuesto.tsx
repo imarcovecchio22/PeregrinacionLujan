@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { formatHora } from "@/domain/hora";
 import { estadoPuesto } from "@/domain/recorrido";
 import { guardarDispositivo, useDispositivo } from "@/lib/dispositivo";
 import type { DatosPuesto } from "@/lib/tipos-api";
-import { agrupar, armarFila, coincide, ORDEN_GRUPOS, type Grupo } from "@/lib/vista-puesto";
+import { agrupar, armarFila, caminanteDe, coincide, ORDEN_GRUPOS, type Grupo } from "@/lib/vista-puesto";
 import { Contadores } from "./Contadores";
 import { FilaCaminante } from "./FilaCaminante";
 import { useRegistrosPuesto } from "./useRegistrosPuesto";
@@ -35,15 +35,51 @@ export function MiPuesto({ inicial }: { inicial: DatosPuesto }) {
     [filas, puesto, puestos],
   );
   const errores = [...s.cambios.values()].filter((c) => c.estado === "error");
+  const enviando = [...s.cambios.values()].filter((c) => c.estado === "enviando").length;
   const idsConError = useMemo(
-    () => new Set([...s.cambios.values()].filter((c) => c.estado === "error").map((c) => c.cambio.registro.caminanteId)),
+    () => new Set([...s.cambios.values()].filter((c) => c.estado === "error").map((c) => caminanteDe(c.cambio))),
     [s.cambios],
   );
-  const grupos = useMemo(
-    () => agrupar(filas.filter((f) => coincide(f, busqueda)), idsConError),
-    [filas, busqueda, idsConError],
+
+  // Mientras una fila se guarda (y unos segundos después) queda en el grupo donde estaba,
+  // para que se vea el "✓ Guardado" en vez de saltar a otra sección.
+  const [fijas, setFijas] = useState<Map<string, Grupo>>(() => new Map());
+  const activos = useMemo(
+    () =>
+      new Set([
+        ...[...s.cambios.values()].filter((c) => c.estado === "enviando").map((c) => caminanteDe(c.cambio)),
+        ...[...s.recientes].map((clave) => clave.split(":")[0]),
+      ]),
+    [s.cambios, s.recientes],
   );
-  const enviando = [...s.cambios.values()].filter((c) => c.estado === "enviando").length;
+  const fijasVigentes = useMemo(() => new Map([...fijas].filter(([id]) => activos.has(id))), [fijas, activos]);
+  const fijar = useCallback(
+    (caminanteId: string) => {
+      const f = filas.find((x) => x.caminante.id === caminanteId);
+      if (f) setFijas((m) => new Map(m).set(caminanteId, fijasVigentes.get(caminanteId) ?? f.grupo));
+    },
+    [filas, fijasVigentes],
+  );
+  const { marcar: marcarBase, marcarAbandono: abandonoBase } = s;
+  const marcar = useCallback<typeof marcarBase>(
+    (id, tipo, desc) => {
+      fijar(id);
+      marcarBase(id, tipo, desc);
+    },
+    [fijar, marcarBase],
+  );
+  const marcarAbandono = useCallback<typeof abandonoBase>(
+    (id, puestoId, anterior, desc) => {
+      fijar(id);
+      abandonoBase(id, puestoId, anterior, desc);
+    },
+    [fijar, abandonoBase],
+  );
+
+  const grupos = useMemo(
+    () => agrupar(filas.filter((f) => coincide(f, busqueda)), idsConError, fijasVigentes),
+    [filas, busqueda, idsConError, fijasVigentes],
+  );
   const titulos: Record<Grupo, string> = {
     SIN_GUARDAR: "⚠️ Sin guardar",
     FALTAN_LLEGAR: puesto.registraIngreso ? "Faltan llegar" : "Faltan presentarse",
@@ -64,9 +100,14 @@ export function MiPuesto({ inicial }: { inicial: DatosPuesto }) {
           </h1>
           <button type="button" onClick={s.refrescar} className="py-1 pl-2 text-right text-xs text-gray-600">
             {s.conexion.ok ? "🟢" : "🔴"} {formatHora(new Date(s.conexion.ultima))}
-            {enviando > 0 && <span className="block">Guardando {enviando}…</span>}
           </button>
         </div>
+        <EstadoGuardado
+          errores={errores.length}
+          enviando={enviando}
+          guardado={s.recientes.size > 0}
+          onReintentar={errores.some((e) => e.reintentable) ? s.reintentarTodo : undefined}
+        />
         <div className="mt-2">
           <Contadores estado={estado} />
         </div>
@@ -87,18 +128,6 @@ export function MiPuesto({ inicial }: { inicial: DatosPuesto }) {
           Sin conexión con el servidor. Mostrando datos de las {formatHora(new Date(s.conexion.ultima))}.
         </div>
       )}
-      {errores.length > 0 && (
-        <div className="flex items-center justify-between gap-2 bg-red-600 px-3 py-2 text-white">
-          <span className="text-sm font-semibold">
-            {errores.length} {errores.length === 1 ? "registro sin guardar" : "registros sin guardar"}
-          </span>
-          {errores.some((e) => e.reintentable) && (
-            <button type="button" onClick={s.reintentarTodo} className="rounded-md bg-white px-3 py-1 font-semibold text-red-700">
-              Reintentar todo
-            </button>
-          )}
-        </div>
-      )}
 
       {ORDEN_GRUPOS.map((g) => {
         const lista = grupos[g];
@@ -109,9 +138,12 @@ export function MiPuesto({ inicial }: { inicial: DatosPuesto }) {
               <FilaCaminante
                 key={f.caminante.id}
                 fila={f}
+                puesto={puesto}
                 puestos={puestos}
                 cambios={s.cambios}
-                onMarcar={s.marcar}
+                recientes={s.recientes}
+                onMarcar={marcar}
+                onAbandono={marcarAbandono}
                 onEditarHora={s.editarHora}
                 onBorrar={s.borrar}
                 onReintentar={s.reintentar}
@@ -187,4 +219,36 @@ function PedirNombre() {
       </div>
     </form>
   );
+}
+
+/** Indicador grande de guardado, siempre visible arriba (header fijo). */
+function EstadoGuardado(props: { errores: number; enviando: number; guardado: boolean; onReintentar?: () => void }) {
+  const { errores, enviando, guardado, onReintentar } = props;
+  if (errores > 0) {
+    return (
+      <div role="alert" className="mt-2 flex items-center justify-between gap-2 rounded-lg bg-red-600 px-3 py-2 text-white">
+        <span className="text-lg font-bold">⚠️ {errores === 1 ? "1 cambio sin guardar" : `${errores} cambios sin guardar`}</span>
+        {onReintentar && (
+          <button type="button" onClick={onReintentar} className="rounded-md bg-white px-3 py-2 font-semibold text-red-700">
+            Reintentar
+          </button>
+        )}
+      </div>
+    );
+  }
+  if (enviando > 0) {
+    return (
+      <p role="status" className="mt-2 animate-pulse rounded-lg bg-amber-500 px-3 py-2 text-center text-lg font-bold text-white">
+        ⏳ Guardando{enviando > 1 ? ` ${enviando}` : ""}…
+      </p>
+    );
+  }
+  if (guardado) {
+    return (
+      <p role="status" className="mt-2 rounded-lg bg-green-600 px-3 py-2 text-center text-lg font-bold text-white">
+        ✓ Guardado
+      </p>
+    );
+  }
+  return null;
 }

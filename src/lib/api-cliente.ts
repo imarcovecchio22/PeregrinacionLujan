@@ -62,3 +62,11 @@ export function nuevoId(): string {
   const h = Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("");
   return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
 }
+
+export async function guardarAbandono(caminanteId: string, puestoId: string | null): Promise<void> {
+  await pedir(`/api/caminantes/${caminanteId}/abandono`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ puestoId }),
+  });
+}

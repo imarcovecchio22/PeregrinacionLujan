@@ -74,3 +74,23 @@ export async function guardarRegistro(id: string, datos: z.infer<typeof esquemaR
 export async function borrarRegistro(id: string) {
   await prisma.registro.deleteMany({ where: { id } });
 }
+
+/** Marca (o quita, con null) el abandono "después del puesto X". Idempotente. */
+export async function guardarAbandono(caminanteId: string, puestoId: string | null) {
+  const caminante = await prisma.caminante.findUnique({
+    where: { id: caminanteId },
+    include: { puntoPartida: true, peregrinacion: { include: { puestos: true } } },
+  });
+  if (!caminante) throw new ErrorDominio("El caminante no existe.", 404);
+  if (puestoId) {
+    const puesto = caminante.peregrinacion.puestos.find((p) => p.id === puestoId);
+    if (!puesto || puesto.orden < caminante.puntoPartida.orden) {
+      throw new ErrorDominio("Ese puesto está antes de su punto de partida.");
+    }
+  }
+  if (caminante.abandonoTrasPuestoId === puestoId) return; // ya estaba así (reintento)
+  await prisma.caminante.update({
+    where: { id: caminanteId },
+    data: { abandonoTrasPuestoId: puestoId, abandonoHora: puestoId ? new Date() : null },
+  });
+}

@@ -5,24 +5,50 @@ import { registrosVigentes, rolEnPuesto, type RolEnPuesto } from "@/domain/recor
 import type { PuestoDom, TipoRegistro } from "@/domain/tipos";
 import type { FilaPuesto, RegistroApi } from "./tipos-api";
 
-/** Cambio local pendiente de confirmar por el servidor, por caminante + tipo. */
-export type CambioLocal = { accion: "guardar"; registro: RegistroApi } | { accion: "borrar"; registro: RegistroApi };
+/** Cambio local pendiente de confirmar por el servidor (un registro o el abandono). */
+export type CambioLocal =
+  | { accion: "guardar"; registro: RegistroApi }
+  | { accion: "borrar"; registro: RegistroApi }
+  | { accion: "abandono"; caminanteId: string; puestoId: string | null };
 
-export const claveCambio = (caminanteId: string, tipo: TipoRegistro) => `${caminanteId}:${tipo}`;
+export type ClaveTipo = TipoRegistro | "ABANDONO";
+export const claveCambio = (caminanteId: string, tipo: ClaveTipo) => `${caminanteId}:${tipo}`;
 
-/** Aplica los cambios locales sobre los registros del servidor. */
+export function caminanteDe(c: CambioLocal): string {
+  return c.accion === "abandono" ? c.caminanteId : c.registro.caminanteId;
+}
+
+export function claveDe(c: CambioLocal): string {
+  return c.accion === "abandono" ? claveCambio(c.caminanteId, "ABANDONO") : claveCambio(c.registro.caminanteId, c.registro.tipo);
+}
+
+/** Aplica los cambios locales sobre los datos del servidor. */
 export function combinar(filas: FilaPuesto[], cambios: Map<string, CambioLocal>): FilaPuesto[] {
   if (cambios.size === 0) return filas;
   return filas.map((f) => {
     let registros = f.registros;
     for (const tipo of ["INGRESO", "SALIDA"] as const) {
       const cambio = cambios.get(claveCambio(f.caminante.id, tipo));
-      if (!cambio) continue;
+      if (!cambio || cambio.accion === "abandono") continue;
       registros = registros.filter((r) => r.tipo !== tipo);
       if (cambio.accion === "guardar") registros = [...registros, cambio.registro];
     }
-    return registros === f.registros ? f : { ...f, registros };
+    const abandono = cambios.get(claveCambio(f.caminante.id, "ABANDONO"));
+    const caminante =
+      abandono?.accion === "abandono" ? { ...f.caminante, abandonoTrasPuestoId: abandono.puestoId } : f.caminante;
+    return registros === f.registros && caminante === f.caminante ? f : { ...f, caminante, registros };
   });
+}
+
+/**
+ * Puesto a registrar como "abandonó después de…" al tocar Abandonó en este puesto:
+ * si ya ingresó (o parte de acá), este puesto; si todavía no llegó, el anterior de su recorrido.
+ */
+export function puestoAbandono(fila: FilaVista, puesto: PuestoDom, puestos: PuestoDom[]): PuestoDom {
+  if (fila.rol === "PARTIDA" || fila.registro("INGRESO") || !puesto.registraIngreso) return puesto;
+  const partida = puestos.find((p) => p.id === fila.caminante.puntoPartidaId)!;
+  const anteriores = puestos.filter((p) => p.orden < puesto.orden && p.orden >= partida.orden);
+  return anteriores.sort((a, b) => b.orden - a.orden)[0] ?? puesto;
 }
 
 export type Grupo = "SIN_GUARDAR" | "FALTAN_LLEGAR" | "EN_EL_PUESTO" | "COMPLETOS" | "ABANDONARON";
@@ -49,12 +75,20 @@ export function armarFila(f: FilaPuesto, puesto: PuestoDom, puestos: PuestoDom[]
 export const ORDEN_GRUPOS: Grupo[] = ["SIN_GUARDAR", "FALTAN_LLEGAR", "EN_EL_PUESTO", "COMPLETOS", "ABANDONARON"];
 
 /**
- * Agrupa faltantes primero. Las filas con un guardado fallido van arriba de todo,
- * para que el error nunca quede escondido en un grupo plegado.
+ * Agrupa faltantes primero. Las filas con un guardado fallido van arriba de todo, para que
+ * el error nunca quede escondido en un grupo plegado. `fijas` mantiene una fila en el grupo
+ * donde estaba mientras se guarda (si no, "salta" y no se ve la confirmación).
  */
-export function agrupar(filas: FilaVista[], conError: Set<string> = new Set()): Record<Grupo, FilaVista[]> {
+export function agrupar(
+  filas: FilaVista[],
+  conError: Set<string> = new Set(),
+  fijas: Map<string, Grupo> = new Map(),
+): Record<Grupo, FilaVista[]> {
   const res: Record<Grupo, FilaVista[]> = { SIN_GUARDAR: [], FALTAN_LLEGAR: [], EN_EL_PUESTO: [], COMPLETOS: [], ABANDONARON: [] };
-  for (const f of filas) res[conError.has(f.caminante.id) ? "SIN_GUARDAR" : f.grupo].push(f);
+  for (const f of filas) {
+    const id = f.caminante.id;
+    res[conError.has(id) ? "SIN_GUARDAR" : (fijas.get(id) ?? f.grupo)].push(f);
+  }
   for (const g of ORDEN_GRUPOS) res[g].sort((a, b) => a.caminante.numero - b.caminante.numero);
   return res;
 }
