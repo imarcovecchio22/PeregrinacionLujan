@@ -26,10 +26,21 @@ export interface FilaPuesto {
   registros: RegistroApi[];
 }
 
+export interface OtroCaminante {
+  id: string;
+  numero: number;
+  nombreCompleto: string;
+  dni: string | null;
+  telefonos: string[];
+  partida: string;
+}
+
 export interface DatosPuesto {
   puesto: PuestoDom;
   puestos: PuestoDom[];
   filas: FilaPuesto[];
+  /** Caminantes que NO están en la lista de este puesto (para avisar al buscar). */
+  otros: OtroCaminante[];
   /** ISO: cuándo se generaron los datos en el servidor. */
   generado: string;
 }

@@ -6,7 +6,8 @@ import { formatHora } from "@/domain/hora";
 import { estadoPuesto } from "@/domain/recorrido";
 import { guardarDispositivo, useDispositivo } from "@/lib/dispositivo";
 import type { DatosPuesto } from "@/lib/tipos-api";
-import { agrupar, armarFila, caminanteDe, coincide, ORDEN_GRUPOS, type Grupo } from "@/lib/vista-puesto";
+import type { OtroCaminante } from "@/lib/tipos-api";
+import { agrupar, armarFila, caminanteDe, coincide, coincideCaminante, ORDEN_GRUPOS, type Grupo } from "@/lib/vista-puesto";
 import { Contadores } from "./Contadores";
 import { FilaCaminante } from "./FilaCaminante";
 import { useRegistrosPuesto } from "./useRegistrosPuesto";
@@ -185,8 +186,10 @@ export function MiPuesto({ inicial }: { inicial: DatosPuesto }) {
         );
       })}
       {filas.length > 0 && ORDEN_GRUPOS.every((g) => grupos[g].length === 0) && (
-        <p className="p-6 text-center text-gray-500">Nadie coincide con &quot;{busqueda}&quot;.</p>
+        <SinResultados busqueda={busqueda} puesto={puesto.nombre} otros={s.datos.otros ?? []} />
       )}
+
+      <p className="p-4 text-center text-xs text-gray-400">Versión {process.env.NEXT_PUBLIC_VERSION}</p>
 
       {s.aviso && (
         <div className="fixed inset-x-0 bottom-0 z-20 mx-auto max-w-lg p-3">
@@ -269,4 +272,33 @@ function EstadoGuardado(props: { errores: number; enviando: number; guardado: bo
     );
   }
   return null;
+}
+
+/** Si la búsqueda no está en este puesto, dice dónde está esa persona (si existe). */
+function SinResultados({ busqueda, puesto, otros }: { busqueda: string; puesto: string; otros: OtroCaminante[] }) {
+  const encontrados = otros.filter((o) => coincideCaminante(o, busqueda)).slice(0, 5);
+  if (encontrados.length === 0) {
+    return <p className="p-6 text-center text-gray-500">Nadie coincide con &quot;{busqueda}&quot;.</p>;
+  }
+  return (
+    <div className="m-3 rounded-lg border-2 border-amber-400 bg-amber-50 p-3">
+      <p className="font-semibold text-amber-900">No está en la lista de {puesto} (no pasa por acá):</p>
+      <ul className="mt-2 grid gap-2">
+        {encontrados.map((o) => (
+          <li key={o.id} className="flex items-center justify-between gap-2">
+            <span>
+              <b className="font-mono">#{o.numero}</b> {o.nombreCompleto}
+              <span className="block text-sm text-gray-700">
+                Sale desde {o.partida}
+                {o.dni && ` · DNI ${o.dni}`}
+              </span>
+            </span>
+            <Link href={`/caminantes/${o.id}`} className="shrink-0 text-blue-700">
+              Ficha ›
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
 }

@@ -107,6 +107,7 @@ export default async function Admin() {
         <form action={salir} className="text-center">
           <button className="py-2 text-sm text-gray-600 underline">Salir en este celular (pide el código otra vez)</button>
         </form>
+        <p className="text-center text-xs text-gray-400">Versión {process.env.NEXT_PUBLIC_VERSION}</p>
       </main>
     </div>
   );

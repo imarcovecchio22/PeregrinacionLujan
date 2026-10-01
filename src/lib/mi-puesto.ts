@@ -44,8 +44,20 @@ export async function cargarDatosPuesto(puestoId: string): Promise<DatosPuesto |
     porCaminante.set(r.caminanteId, [...(porCaminante.get(r.caminanteId) ?? []), registroApi(r)]);
   }
 
+  const enLista = (c: (typeof peregrinacion.caminantes)[number]) =>
+    registrosPlanificados(c, puestoSolo, puestos).length > 0 || porCaminante.has(c.id);
+  const otros = peregrinacion.caminantes
+    .filter((c) => !enLista(c))
+    .map((c) => ({
+      id: c.id,
+      numero: c.numero,
+      nombreCompleto: c.nombreCompleto,
+      dni: c.dni,
+      telefonos: c.telefonos,
+      partida: puestos.find((p) => p.id === c.puntoPartidaId)?.nombre ?? "?",
+    }));
   const filas = peregrinacion.caminantes
-    .filter((c) => registrosPlanificados(c, puestoSolo, puestos).length > 0 || porCaminante.has(c.id))
+    .filter(enLista)
     .map((c) => ({
       caminante: {
         id: c.id,
@@ -73,6 +85,7 @@ export async function cargarDatosPuesto(puestoId: string): Promise<DatosPuesto |
       registraSalida,
     })),
     filas,
+    otros,
     generado: new Date().toISOString(),
   };
 }
