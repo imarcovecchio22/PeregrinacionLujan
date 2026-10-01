@@ -1,0 +1,106 @@
+// Modelo de datos de la Peregrinación a Luján.
+// Las reglas de dominio (qué registros corresponden a cada caminante en cada puesto)
+// NO se guardan: se derivan en src/domain/. Ver CLAUDE.md.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Peregrinacion {
+  id          String      @id @default(cuid())
+  nombre      String
+  /// Día en que arranca la caminata. Las horas importadas sin fecha se interpretan a partir de este día.
+  fechaInicio DateTime    @db.Date
+  /// La app trabaja sobre la peregrinación activa (solo una a la vez).
+  activa      Boolean     @default(false)
+  puestos     Puesto[]
+  caminantes  Caminante[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model Puesto {
+  id               String        @id @default(cuid())
+  peregrinacionId  String
+  peregrinacion    Peregrinacion @relation(fields: [peregrinacionId], references: [id], onDelete: Cascade)
+  /// 0 = partida más lejana (Liniers) ... último = llegada (Luján).
+  orden            Int
+  nombre           String
+  esPartidaPosible Boolean       @default(false)
+  registraIngreso  Boolean       @default(true)
+  registraSalida   Boolean       @default(true)
+
+  caminantesQueParten     Caminante[] @relation("PuntoPartida")
+  caminantesQueAbandonan  Caminante[] @relation("Abandono")
+  registros               Registro[]
+
+  @@unique([peregrinacionId, orden])
+  @@unique([peregrinacionId, nombre])
+}
+
+enum Transporte {
+  MICRO
+  POR_SU_CUENTA
+}
+
+model Caminante {
+  id               String        @id @default(cuid())
+  peregrinacionId  String
+  peregrinacion    Peregrinacion @relation(fields: [peregrinacionId], references: [id], onDelete: Cascade)
+  numero           Int
+  /// Texto libre tal como vino ("Apellido Nombre" o "Nombre Apellido"). Nunca separar ni invertir.
+  nombreCompleto   String
+  /// Uno o más teléfonos, guardados tal cual (sin normalizar).
+  telefonos        String[]
+  dni              String?
+  /// Solo aplica a quienes parten del puesto de orden 0 (Liniers).
+  transporteIda    Transporte?
+  transporteVuelta Transporte?
+  puntoPartidaId   String
+  puntoPartida     Puesto        @relation("PuntoPartida", fields: [puntoPartidaId], references: [id])
+  /// "Abandonó después de este puesto": desde ahí no se espera ningún registro más
+  /// (la Salida de este mismo puesto pasa a ser opcional).
+  abandonoTrasPuestoId String?
+  abandonoTrasPuesto   Puesto?   @relation("Abandono", fields: [abandonoTrasPuestoId], references: [id])
+  abandonoHora     DateTime?     @db.Timestamptz
+  notas            String?
+  registros        Registro[]
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  @@unique([peregrinacionId, numero])
+  @@index([peregrinacionId])
+}
+
+enum TipoRegistro {
+  INGRESO
+  SALIDA
+}
+
+model Registro {
+  /// UUID generado por el cliente: reintentar un guardado (o, en fase 2, sincronizar
+  /// la cola offline) nunca duplica registros.
+  id          String       @id
+  caminanteId String
+  caminante   Caminante    @relation(fields: [caminanteId], references: [id], onDelete: Cascade)
+  puestoId    String
+  puesto      Puesto       @relation(fields: [puestoId], references: [id], onDelete: Cascade)
+  tipo        TipoRegistro
+  hora        DateTime     @db.Timestamptz
+  /// Nombre de quien cargó (sin login por ahora: lo declara el dispositivo).
+  cargadoPor  String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@unique([caminanteId, puestoId, tipo])
+  @@index([puestoId])
+}
+
+// Fase 2 (no implementado): Vehiculo (IDA | VUELTA, nombre, capacidad),
+// AsignacionVehiculo (caminante ↔ vehículo) y Abordaje (subió / no subió, hora).
+// Todo cuelga de Peregrinacion; no requiere tocar los modelos de arriba.
