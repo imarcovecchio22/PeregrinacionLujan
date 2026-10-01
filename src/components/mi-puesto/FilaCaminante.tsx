@@ -168,23 +168,27 @@ function FilaCaminanteBase(props: Props) {
               </button>
             );
           })}
-        <button
-          type="button"
-          onClick={abandono}
-          className={`min-h-14 flex-1 rounded-xl px-1 text-base font-bold leading-tight ${
-            abandonoEn ? "bg-gray-700 text-white" : "border-2 border-red-300 bg-white text-red-700 active:bg-red-50"
-          }`}
-        >
-          {abandonoEn ? (
-            <>
-              <span className="block text-xs font-semibold">Abandonó tras</span>
-              {estado("ABANDONO")?.estado === "enviando" ? "⏳ " : ""}
-              {abandonoEn.nombre}
-            </>
-          ) : (
-            "Abandonó"
-          )}
-        </button>
+        {/* En su punto de partida no se marca abandono: si no vino, lo muestra el check-in.
+            Si ya tiene uno marcado, el botón queda para poder quitarlo. */}
+        {(!esPartida || abandonoEn) && (
+          <button
+            type="button"
+            onClick={abandono}
+            className={`min-h-14 flex-1 rounded-xl px-1 text-base font-bold leading-tight ${
+              abandonoEn ? "bg-gray-700 text-white" : "border-2 border-red-300 bg-white text-red-700 active:bg-red-50"
+            }`}
+          >
+            {abandonoEn ? (
+              <>
+                <span className="block text-xs font-semibold">Abandonó tras</span>
+                {estado("ABANDONO")?.estado === "enviando" ? "⏳ " : ""}
+                {abandonoEn.nombre}
+              </>
+            ) : (
+              "Abandonó"
+            )}
+          </button>
+        )}
       </div>
 
       {((aviso === "checkin" && faltaCheckin) || (aviso === "ingreso" && faltaIngreso)) && (
