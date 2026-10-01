@@ -5,11 +5,13 @@ import { memo, useState } from "react";
 import { EditorHora } from "@/components/EditorHora";
 import { formatHora } from "@/domain/hora";
 import type { AbordajeApi, FilaMicro as Fila } from "@/lib/tipos-api";
+import type { TextosTramo } from "@/lib/vista-micro";
 import { hrefTelefono } from "@/lib/vista-puesto";
 import type { EstadoCambioAbordaje } from "./useAbordajes";
 
 interface Props {
   fila: Fila;
+  textos: TextosTramo;
   estado?: EstadoCambioAbordaje;
   reciente: boolean;
   onSubio: (caminanteId: string, descripcion: string) => void;
@@ -19,7 +21,7 @@ interface Props {
   onDescartar: (caminanteId: string) => void;
 }
 
-function FilaMicroBase({ fila, estado, reciente, onSubio, onEditarHora, onBorrar, onReintentar, onDescartar }: Props) {
+function FilaMicroBase({ fila, textos, estado, reciente, onSubio, onEditarHora, onBorrar, onReintentar, onDescartar }: Props) {
   const c = fila.caminante;
   const a = fila.abordaje;
   const [editando, setEditando] = useState(false);
@@ -47,8 +49,13 @@ function FilaMicroBase({ fila, estado, reciente, onSubio, onEditarHora, onBorrar
       <p className="text-sm text-gray-600">
         {c.dni && `DNI ${c.dni} · `}Sale desde {fila.partida}
       </p>
+      {textos.marcarPorSuCuenta && c.transporteIda === "POR_SU_CUENTA" && (
+        <p className="mt-1 inline-block rounded bg-gray-200 px-1.5 text-sm font-semibold text-gray-800">Va por su cuenta</p>
+      )}
       {!fila.esperado && (
-        <p className="mt-1 inline-block rounded bg-amber-200 px-1.5 text-sm font-semibold text-amber-900">No anotado: {fila.motivo}</p>
+        <p className="mt-1 inline-block rounded bg-amber-200 px-1.5 text-sm font-semibold text-amber-900">
+          {textos.etiquetaNoAnotado}: {fila.motivo}
+        </p>
       )}
 
       {(enviando || recien) && (
@@ -85,16 +92,16 @@ function FilaMicroBase({ fila, estado, reciente, onSubio, onEditarHora, onBorrar
             className="min-h-14 w-full rounded-xl border-2 border-green-600 bg-white text-green-800"
           >
             <span className="font-mono text-lg font-bold">
-              {enviando ? "⏳" : "✓"} Subió {formatHora(new Date(a.hora))}
+              {enviando ? "⏳" : "✓"} {textos.hecho} {formatHora(new Date(a.hora))}
             </span>
           </button>
         ) : (
           <button
             type="button"
-            onClick={() => onSubio(c.id, `#${c.numero} ${c.nombreCompleto}: subió`)}
+            onClick={() => onSubio(c.id, `#${c.numero} ${c.nombreCompleto}: ${textos.hecho.toLowerCase()}`)}
             className="min-h-14 w-full rounded-xl bg-green-600 text-lg font-bold text-white shadow-sm active:bg-green-800"
           >
-            {fila.esperado ? "Subió" : "Subió igual (no estaba anotado)"}
+            {fila.esperado ? textos.hecho : textos.hacerIgual}
           </button>
         )}
       </div>
@@ -102,13 +109,13 @@ function FilaMicroBase({ fila, estado, reciente, onSubio, onEditarHora, onBorrar
       {editando && a && (
         <EditorHora
           registro={a}
-          titulo="Subió"
+          titulo={textos.hecho}
           onGuardar={(hhmm) => {
             onEditarHora(a, hhmm);
             setEditando(false);
           }}
           onBorrar={() => {
-            if (confirm(`¿Borrar que #${c.numero} subió?`)) {
+            if (confirm(`¿Borrar que #${c.numero} ${textos.hecho.toLowerCase()}?`)) {
               onBorrar(a);
               setEditando(false);
             }
@@ -120,7 +127,7 @@ function FilaMicroBase({ fila, estado, reciente, onSubio, onEditarHora, onBorrar
       {error && (
         <div className="mt-2 rounded-md border-2 border-red-400 bg-white p-2 text-red-800">
           <p>
-            <b>⚠️ NO SE GUARDÓ</b> ({error.cambio.accion === "borrar" ? "borrar " : ""}subió): {error.error}
+            <b>⚠️ NO SE GUARDÓ</b> ({error.cambio.accion === "borrar" ? "borrar " : ""}{textos.hecho.toLowerCase()}): {error.error}
           </p>
           <div className="mt-2 flex gap-2">
             {error.reintentable && (

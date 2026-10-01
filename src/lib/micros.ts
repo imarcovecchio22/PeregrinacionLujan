@@ -1,5 +1,6 @@
 import "server-only";
 import { z } from "zod";
+import { nombreTurno, turnoDe, turnosCheckin } from "@/domain/checkin";
 import { esperadoEnMicro, motivoNoEsperado, type Tramo } from "@/domain/micros";
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "./db";
@@ -23,6 +24,7 @@ export async function cargarDatosMicro(tramo: Tramo): Promise<DatosMicro | null>
   return {
     tramo,
     peregrinacionId: p.id,
+    turnos: turnosCheckin(p.puestos).map((t) => ({ hora: t.hora, nombre: nombreTurno(t) })),
     filas: p.caminantes.map((c) => {
       const esperado = esperadoEnMicro(c, tramo, p.puestos);
       return {
@@ -39,6 +41,7 @@ export async function cargarDatosMicro(tramo: Tramo): Promise<DatosMicro | null>
           transporteVuelta: c.transporteVuelta,
         },
         partida: p.puestos.find((x) => x.id === c.puntoPartidaId)?.nombre ?? "?",
+        turno: turnoDe(c, p.puestos),
         esperado,
         motivo: esperado ? null : motivoNoEsperado(c, tramo, p.puestos),
         abordaje: c.abordajes[0] ? abordajeApi(c.abordajes[0]) : null,
@@ -50,12 +53,12 @@ export async function cargarDatosMicro(tramo: Tramo): Promise<DatosMicro | null>
 
 export const esquemaAbordaje = z.object({
   caminanteId: z.string().min(1),
-  tramo: z.enum(["IDA", "VUELTA"]),
+  tramo: z.enum(["IDA", "VUELTA", "CHECKIN"]),
   hora: z.iso.datetime({ offset: true }),
   cargadoPor: z.string().trim().max(80).nullable().optional(),
 });
 
-/** Marca que subió. Idempotente; si otro celular ya lo marcó, se conserva ese (yaExistia). */
+/** Marca que subió (o que llegó, en el check-in). Idempotente; si otro celular ya lo marcó, se conserva ese (yaExistia). */
 export async function guardarAbordaje(id: string, d: z.infer<typeof esquemaAbordaje>): Promise<RespuestaAbordaje> {
   const caminante = await prisma.caminante.findUnique({ where: { id: d.caminanteId } });
   if (!caminante) throw new ErrorDominio("El caminante no existe.", 404);

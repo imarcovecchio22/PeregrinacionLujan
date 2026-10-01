@@ -73,6 +73,15 @@ function Formulario({ titulo, puestos, nombreInicial }: Omit<Props, "cambiar"> &
         ))}
       </div>
 
+      <h2 className="mt-6 font-semibold">¿Hacés el check-in en la parroquia?</h2>
+      <button
+        type="button"
+        onClick={() => elegir("micro:checkin", "/checkin")}
+        className="mt-2 min-h-14 w-full rounded-xl border-2 border-blue-700 bg-white px-3 text-lg font-semibold text-blue-800 active:bg-blue-50"
+      >
+        📋 Check-in
+      </button>
+
       <h2 className="mt-6 font-semibold">¿O controlás un micro?</h2>
       <div className="mt-2 grid grid-cols-2 gap-2">
         {(["ida", "vuelta"] as const).map((t) => (
@@ -94,9 +103,10 @@ function Formulario({ titulo, puestos, nombreInicial }: Omit<Props, "cambiar"> &
   );
 }
 
-/** Adónde mandar a un celular que ya eligió: un puesto ("<id>") o un micro ("micro:ida"). */
+/** Adónde mandar a un celular que ya eligió: un puesto ("<id>"), un micro ("micro:ida") o el check-in. */
 function destinoGuardado(guardado: string | null, puestos: { id: string }[]): string | null {
   if (!guardado) return null;
+  if (guardado === "micro:checkin") return "/checkin";
   if (guardado === "micro:ida" || guardado === "micro:vuelta") return `/micro/${guardado.slice(6)}`;
   return puestos.some((p) => p.id === guardado) ? `/puesto/${guardado}` : null;
 }

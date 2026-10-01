@@ -143,4 +143,15 @@ Decisión del grupo: **no se asignan vehículos**, solo se marca "subió / no su
 - Misma mecánica que "Mi puesto" (`useAbordajes`, guardado visible, deshacer); se elige
   desde el inicio y el celular lo recuerda (`dispositivo.puestoId = "micro:ida"`).
 
+### Check-in en la parroquia (`/checkin`)
+Antes de salir, todos pasan por la parroquia (San Patricio) a una hora según su partida.
+- Cada punto de partida tiene `Puesto.horaCheckin` ("HH:mm", editable en `/admin`; default
+  Liniers 07:00, La Reja y Rodríguez 14:00). Las partidas con la misma hora forman un turno
+  (`src/domain/checkin.ts`). Se espera a **todos**, vayan en micro o por su cuenta (se marca
+  "Va por su cuenta").
+- Se guarda como `Abordaje` con tramo `CHECKIN` ("llegó" + hora) y reutiliza la pantalla de
+  micros (`MiMicro` con pestañas por turno; arranca en el turno según la hora). Los de otro
+  turno solo aparecen al buscarlos. Lo marca una sola persona (`dispositivo.puestoId =
+  "micro:checkin"`). Se ve en el tablero, en la ficha y en el resumen de la planilla.
+
 **Pendiente (fase 2):** modo offline con cola de sincronización.

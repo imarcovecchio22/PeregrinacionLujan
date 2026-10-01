@@ -8,7 +8,8 @@ import { formatHora } from "@/domain/hora";
 import { NOMBRE_TRAMO } from "@/domain/micros";
 import { guardarDispositivo, useDispositivo } from "@/lib/dispositivo";
 import type { DatosMicro } from "@/lib/tipos-api";
-import { agruparMicro, grupoMicro, ORDEN_GRUPOS_MICRO, type GrupoMicro } from "@/lib/vista-micro";
+import { turnoActual } from "@/domain/checkin";
+import { agruparMicro, filasDelTurno, grupoMicro, ORDEN_GRUPOS_MICRO, textosTramo, type GrupoMicro } from "@/lib/vista-micro";
 import { FilaMicro } from "./FilaMicro";
 import { useAbordajes } from "./useAbordajes";
 
@@ -20,6 +21,13 @@ export function MiMicro({ inicial }: { inicial: DatosMicro }) {
   const s = useAbordajes(inicial, nombre);
   const [busqueda, setBusqueda] = useState("");
   const [abiertos, setAbiertos] = useState<Set<GrupoMicro>>(() => new Set<GrupoMicro>(["FALTAN", "EXTRAS"]));
+  const textos = textosTramo(s.tramo);
+
+  // Check-in: un turno por vez (arranca en el que corresponde a esta hora).
+  const esCheckin = s.tramo === "CHECKIN";
+  const turnos = inicial.turnos;
+  const [turno, setTurno] = useState(() => turnoActual(turnos, formatHora(new Date()))?.hora ?? null);
+  const filas = useMemo(() => (esCheckin ? filasDelTurno(s.filas, turno) : s.filas), [esCheckin, s.filas, turno]);
 
   // Este celular queda "en" este micro (al abrir la app vuelve acá).
   useEffect(() => {
@@ -28,9 +36,10 @@ export function MiMicro({ inicial }: { inicial: DatosMicro }) {
   }, [dispositivo, s.tramo]);
 
   // `esperado` viene calculado del servidor (abandonos incluidos); los contadores salen de las filas.
-  const esperados = s.filas.filter((f) => f.esperado);
+  const esperados = filas.filter((f) => f.esperado);
   const subieron = esperados.filter((f) => f.abordaje).length;
-  const extras = s.filas.filter((f) => !f.esperado && f.abordaje).length;
+  // En el check-in, los de otro turno no cuentan acá (tienen su pestaña).
+  const extras = esCheckin ? 0 : filas.filter((f) => !f.esperado && f.abordaje).length;
 
   const errores = [...s.cambios.values()].filter((c) => c.estado === "error");
   const enviando = [...s.cambios.values()].filter((c) => c.estado === "enviando").length;
@@ -49,28 +58,29 @@ export function MiMicro({ inicial }: { inicial: DatosMicro }) {
   const { marcarSubio: marcarBase } = s;
   const marcarSubio = useCallback(
     (id: string, desc: string) => {
-      const f = s.filas.find((x) => x.caminante.id === id);
-      const g = f ? grupoMicro(f) : null;
+      const f = filas.find((x) => x.caminante.id === id);
+      const g = f ? grupoMicro(f, !esCheckin) : null;
       if (g) setFijas((m) => new Map(m).set(id, fijasVigentes.get(id) ?? g));
       marcarBase(id, desc);
     },
-    [s.filas, fijasVigentes, marcarBase],
+    [filas, fijasVigentes, marcarBase, esCheckin],
   );
 
   const { grupos, noAnotados } = useMemo(
-    () => agruparMicro(s.filas, busqueda, conError, fijasVigentes),
-    [s.filas, busqueda, conError, fijasVigentes],
+    () => agruparMicro(filas, busqueda, conError, fijasVigentes, !esCheckin),
+    [filas, busqueda, conError, fijasVigentes, esCheckin],
   );
   const titulos: Record<GrupoMicro, string> = {
     SIN_GUARDAR: "⚠️ Sin guardar",
-    FALTAN: "Faltan subir",
-    EXTRAS: "Subieron sin estar anotados",
-    SUBIERON: "Subieron",
+    FALTAN: textos.faltan,
+    EXTRAS: textos.extras,
+    SUBIERON: textos.hicieron,
   };
-  const fila = (f: (typeof s.filas)[number]) => (
+  const fila = (f: (typeof filas)[number]) => (
     <FilaMicro
       key={f.caminante.id}
       fila={f}
+      textos={textos}
       estado={s.cambios.get(f.caminante.id)}
       reciente={s.recientes.has(f.caminante.id)}
       onSubio={marcarSubio}
@@ -89,7 +99,9 @@ export function MiMicro({ inicial }: { inicial: DatosMicro }) {
           <Link href="/?cambiar=1" className="py-1 pr-2 text-sm text-blue-700">
             ← Inicio
           </Link>
-          <h1 className="truncate text-lg font-bold">🚌 {NOMBRE_TRAMO[s.tramo]}</h1>
+          <h1 className="truncate text-lg font-bold">
+            {textos.icono} {NOMBRE_TRAMO[s.tramo]}
+          </h1>
           <button type="button" onClick={s.refrescar} className="py-1 pl-2 text-right text-xs text-gray-600">
             {s.conexion.ok ? "🟢" : "🔴"} {formatHora(new Date(s.conexion.ultima))}
           </button>
@@ -100,20 +112,50 @@ export function MiMicro({ inicial }: { inicial: DatosMicro }) {
           guardado={s.recientes.size > 0}
           onReintentar={errores.some((e) => e.reintentable) ? s.reintentarTodo : undefined}
         />
+        {esCheckin && turnos.length > 1 && (
+          <div className="mt-2 grid auto-cols-fr grid-flow-col gap-1 rounded-xl bg-gray-100 p-1" role="tablist">
+            {turnos.map((t) => {
+              const faltan = s.filas.filter((f) => f.turno === t.hora && !f.abordaje).length;
+              const activo = t.hora === turno;
+              return (
+                <button
+                  key={t.hora ?? "sin"}
+                  type="button"
+                  role="tab"
+                  aria-selected={activo}
+                  onClick={() => {
+                    setTurno(t.hora);
+                    setFijas(new Map());
+                  }}
+                  className={`min-h-12 rounded-lg px-2 py-1 text-left leading-tight ${activo ? "bg-blue-700 text-white shadow" : "text-gray-800"}`}
+                >
+                  <span className="block text-lg font-bold">{t.hora ?? "Sin horario"}</span>
+                  <span className="block text-xs">
+                    {t.nombre.split(" · ")[1]} · faltan {faltan}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
         <div className="mt-2 grid grid-cols-2 gap-2">
           <div className={`rounded-lg border px-2 py-1 text-center ${esperados.length - subieron === 0 ? "border-gray-300 bg-gray-50 text-gray-500" : "border-green-300 bg-green-50 text-green-900"}`}>
-            <div className="text-xs font-medium">Faltan subir</div>
+            <div className="text-xs font-medium">{textos.faltan}</div>
             <div className="font-mono text-2xl leading-tight font-bold">
               {esperados.length - subieron}
               <span className="text-sm font-normal"> / {esperados.length}</span>
             </div>
           </div>
           <div className="rounded-lg border border-gray-300 px-2 py-1 text-center">
-            <div className="text-xs font-medium">Subieron</div>
+            <div className="text-xs font-medium">{textos.hicieron}</div>
             <div className="font-mono text-2xl leading-tight font-bold">{subieron + extras}</div>
           </div>
         </div>
-        {extras > 0 && <p className="mt-1 text-center text-xs text-gray-600">Incluye {extras} que no estaban anotados</p>}
+        {extras > 0 && (
+          <p className="mt-1 text-center text-xs text-gray-600">
+            Incluye {extras} que no estaban anotados
+          </p>
+        )}
         <input
           type="search"
           value={busqueda}
@@ -168,7 +210,7 @@ export function MiMicro({ inicial }: { inicial: DatosMicro }) {
 
       {noAnotados.length > 0 && (
         <section className="m-3 rounded-lg border-2 border-amber-400 bg-amber-50">
-          <h2 className="px-3 pt-3 font-semibold text-amber-900">No está anotado para este micro:</h2>
+          <h2 className="px-3 pt-3 font-semibold text-amber-900">{textos.noAnotado}</h2>
           <ul className="mt-2">{noAnotados.slice(0, 10).map(fila)}</ul>
         </section>
       )}

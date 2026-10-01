@@ -34,6 +34,9 @@ model Puesto {
   esPartidaPosible Boolean       @default(false)
   registraIngreso  Boolean       @default(true)
   registraSalida   Boolean       @default(true)
+  /// Hora del check-in en la parroquia ("HH:mm") de quienes parten de acá. Solo para partidas;
+  /// las partidas con la misma hora forman un mismo turno (ej. La Reja y Rodríguez a las 14:00).
+  horaCheckin      String?
 
   caminantesQueParten     Caminante[] @relation("PuntoPartida")
   caminantesQueAbandonan  Caminante[] @relation("Abandono")
@@ -115,10 +118,13 @@ model IntentoAcceso {
 enum Tramo {
   IDA
   VUELTA
+  /// Check-in en la parroquia antes de salir (no es un micro, pero se marca igual).
+  CHECKIN
 }
 
 /// Control de micros: quién subió al micro de ida (parroquia → Liniers) o de vuelta
 /// (desde Luján). No se asignan vehículos: solo "subió / no subió" (decisión del grupo).
+/// También guarda el check-in en la parroquia (tramo CHECKIN): "llegó" con su hora.
 model Abordaje {
   /// UUID generado por el cliente (reintentos idempotentes, igual que Registro).
   id          String    @id

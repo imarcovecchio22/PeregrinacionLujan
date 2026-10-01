@@ -1,5 +1,6 @@
 // Tipos que viajan entre el servidor y el navegador (fechas como ISO string).
 
+import type { Tramo } from "@/domain/micros";
 import type { CaminanteDom, PuestoDom, TipoRegistro } from "@/domain/tipos";
 
 export interface RegistroApi {
@@ -54,7 +55,7 @@ export interface RespuestaGuardar {
 export interface AbordajeApi {
   id: string;
   caminanteId: string;
-  tramo: "IDA" | "VUELTA";
+  tramo: Tramo;
   /** ISO 8601 */
   hora: string;
   cargadoPor: string | null;
@@ -63,6 +64,8 @@ export interface AbordajeApi {
 export interface FilaMicro {
   caminante: CaminanteApi;
   partida: string;
+  /** Hora del turno de check-in de su partida ("HH:mm"). */
+  turno: string | null;
   /** Anotado para este micro. */
   esperado: boolean;
   /** Si no está anotado, por qué (ej. "vuelve por su cuenta"). */
@@ -71,8 +74,10 @@ export interface FilaMicro {
 }
 
 export interface DatosMicro {
-  tramo: "IDA" | "VUELTA";
+  tramo: Tramo;
   peregrinacionId: string;
+  /** Turnos de check-in (para la pantalla de check-in). */
+  turnos: { hora: string | null; nombre: string }[];
   filas: FilaMicro[];
   generado: string;
 }

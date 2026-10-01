@@ -5,11 +5,18 @@
 
 import type { CaminanteDom, PuestoDom } from "./tipos";
 
-export type Tramo = "IDA" | "VUELTA";
+/** Tramos de micro. CHECKIN no es un micro (es el check-in en la parroquia) pero se guarda igual. */
+export type Tramo = "IDA" | "VUELTA" | "CHECKIN";
 
+/** Solo los micros (el check-in se muestra aparte). */
 export const TRAMOS: Tramo[] = ["IDA", "VUELTA"];
 
+export function esTramo(t: string): t is Tramo {
+  return t === "IDA" || t === "VUELTA" || t === "CHECKIN";
+}
+
 export function esperadoEnMicro(c: CaminanteDom, tramo: Tramo, puestos: PuestoDom[]): boolean {
+  if (tramo === "CHECKIN") return true;
   if (tramo === "IDA") {
     const primero = [...puestos].sort((a, b) => a.orden - b.orden)[0];
     return c.puntoPartidaId === primero?.id && c.transporteIda === "MICRO";
@@ -20,6 +27,7 @@ export function esperadoEnMicro(c: CaminanteDom, tramo: Tramo, puestos: PuestoDo
 /** Por qué alguien no está anotado para el micro (para mostrar al buscarlo). */
 export function motivoNoEsperado(c: CaminanteDom, tramo: Tramo, puestos: PuestoDom[]): string {
   const ordenados = [...puestos].sort((a, b) => a.orden - b.orden);
+  if (tramo === "CHECKIN") return "";
   if (tramo === "IDA") {
     if (c.puntoPartidaId !== ordenados[0]?.id) {
       return `sale desde ${puestos.find((p) => p.id === c.puntoPartidaId)?.nombre ?? "otro puesto"}`;
@@ -59,4 +67,4 @@ export function estadoMicro(
   return { esperados, subieron, faltan: esperados - subieron, extras };
 }
 
-export const NOMBRE_TRAMO: Record<Tramo, string> = { IDA: "Micro de ida", VUELTA: "Micro de vuelta" };
+export const NOMBRE_TRAMO: Record<Tramo, string> = { IDA: "Micro de ida", VUELTA: "Micro de vuelta", CHECKIN: "Check-in" };

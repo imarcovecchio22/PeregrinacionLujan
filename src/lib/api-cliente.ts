@@ -1,6 +1,7 @@
 // Llamadas a la API desde el navegador. Con señal irregular, todo tiene timeout y los
 // errores dicen si vale la pena reintentar.
 
+import type { Tramo } from "@/domain/micros";
 import type { AbordajeApi, DatosMicro, DatosPuesto, RegistroApi, RespuestaAbordaje, RespuestaGuardar } from "./tipos-api";
 
 export class ErrorApi extends Error {
@@ -71,7 +72,7 @@ export async function guardarAbandono(caminanteId: string, puestoId: string | nu
   });
 }
 
-export async function obtenerMicro(tramo: "IDA" | "VUELTA"): Promise<DatosMicro> {
+export async function obtenerMicro(tramo: Tramo): Promise<DatosMicro> {
   return (await pedir(`/api/micros/${tramo.toLowerCase()}`)).json();
 }
 

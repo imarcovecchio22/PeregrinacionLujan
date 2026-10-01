@@ -55,6 +55,23 @@ export function Tablero({ datos }: { datos: DatosTablero }) {
         <Resumen resumen={datos.resumen} puestos={datos.puestos} />
       </div>
 
+      {datos.checkin.length > 0 && (
+        <Link href="/checkin" className="mt-3 block rounded-lg border border-gray-200 bg-white p-3">
+          <div className="text-sm font-semibold">📋 Check-in en la parroquia</div>
+          <div className="mt-1 grid gap-1 sm:grid-cols-2">
+            {datos.checkin.map((t) => (
+              <div key={t.nombre} className="flex items-baseline justify-between gap-2">
+                <span className="text-sm text-gray-700">{t.nombre}</span>
+                <span className="font-mono text-lg font-bold">
+                  {t.llegaron}
+                  <span className="text-sm font-normal"> / {t.total}</span>
+                </span>
+              </div>
+            ))}
+          </div>
+        </Link>
+      )}
+
       <section className="mt-3 grid grid-cols-2 gap-2">
         {(["IDA", "VUELTA"] as const).map((t) => {
           const m = datos.micros[t];

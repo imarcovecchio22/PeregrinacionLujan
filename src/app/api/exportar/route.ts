@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import type { Tramo } from "@/domain/micros";
 import { prisma } from "@/lib/db";
 import { generarPlanilla } from "@/lib/excel-exportar";
 import { tieneAcceso } from "@/lib/acceso";
@@ -17,14 +18,14 @@ export async function GET(req: NextRequest) {
   if (!p) return NextResponse.json({ error: "No hay peregrinación para exportar." }, { status: 404 });
   const registros = await prisma.registro.findMany({ where: { caminante: { peregrinacionId: p.id } } });
   const abordajes = await prisma.abordaje.findMany({ where: { caminante: { peregrinacionId: p.id } } });
-  const subieron = (t: "IDA" | "VUELTA") => new Set(abordajes.filter((a) => a.tramo === t).map((a) => a.caminanteId));
+  const subieron = (t: Tramo) => new Set(abordajes.filter((a) => a.tramo === t).map((a) => a.caminanteId));
 
   const buffer = await generarPlanilla({
     nombre: p.nombre,
     puestos: p.puestos,
     caminantes: p.caminantes,
     registros,
-    abordajes: { IDA: subieron("IDA"), VUELTA: subieron("VUELTA") },
+    abordajes: { IDA: subieron("IDA"), VUELTA: subieron("VUELTA"), CHECKIN: subieron("CHECKIN") },
   });
   const archivo = `${p.nombre.replace(/[\\/:*?"<>|]/g, "")}.xlsx`;
   return new NextResponse(new Uint8Array(buffer), {

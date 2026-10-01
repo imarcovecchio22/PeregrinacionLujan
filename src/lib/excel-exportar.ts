@@ -1,7 +1,8 @@
 import "server-only";
 import ExcelJS from "exceljs";
 import { describirPosicion, inconsistencias, posicionActual, registrosPlanificados } from "@/domain/recorrido";
-import { estadoMicro, NOMBRE_TRAMO, TRAMOS } from "@/domain/micros";
+import { nombreTurno, turnoDe, turnosCheckin } from "@/domain/checkin";
+import { estadoMicro, NOMBRE_TRAMO, TRAMOS, type Tramo } from "@/domain/micros";
 import { calcularResumen } from "@/domain/resumen";
 import { formatHora } from "@/domain/hora";
 import {
@@ -35,7 +36,7 @@ export interface DatosExportacion {
   caminantes: (CaminanteDom & { numero: number; nombreCompleto: string; dni: string | null; telefonos: string[] })[];
   registros: RegistroDom[];
   /** Quién subió a cada micro (ids de caminante). */
-  abordajes?: { IDA: Set<string>; VUELTA: Set<string> };
+  abordajes?: Record<Tramo, Set<string>>;
 }
 
 /** Hora como fracción de día (lo que Excel entiende como hora), en hora argentina. */
@@ -215,6 +216,14 @@ function agregarResumen(
       const m = estadoMicro(datos.caminantes, t, puestos, datos.abordajes[t]);
       hoja.getCell(fila, 1).value = `${NOMBRE_TRAMO[t]}: subieron (de ${m.esperados} anotados)${m.extras ? ` + ${m.extras} no anotados` : ""}`;
       hoja.getCell(fila, 2).value = m.subieron;
+      hoja.getCell(fila, 2).font = { bold: true };
+      fila++;
+    }
+    for (const t of turnosCheckin(puestos)) {
+      const del = datos.caminantes.filter((c) => turnoDe(c, puestos) === t.hora);
+      const llegaron = del.filter((c) => datos.abordajes!.CHECKIN.has(c.id)).length;
+      hoja.getCell(fila, 1).value = `Check-in ${nombreTurno(t)}: llegaron (de ${del.length})`;
+      hoja.getCell(fila, 2).value = llegaron;
       hoja.getCell(fila, 2).font = { bold: true };
       fila++;
     }

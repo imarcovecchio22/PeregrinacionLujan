@@ -43,12 +43,13 @@ export async function guardarPeregrinacion(_prev: ResultadoAdmin, form: FormData
         fechaInicio: new Date(fechaInicio),
         activa: true,
         puestos: {
-          create: puestos.map(({ orden, nombre, esPartidaPosible, registraIngreso, registraSalida }) => ({
+          create: puestos.map(({ orden, nombre, esPartidaPosible, registraIngreso, registraSalida, horaCheckin }) => ({
             orden,
             nombre,
             esPartidaPosible,
             registraIngreso,
             registraSalida,
+            horaCheckin,
           })),
         },
       },
@@ -82,6 +83,12 @@ const esquemaPuesto = z.object({
   esPartidaPosible: z.boolean(),
   registraIngreso: z.boolean(),
   registraSalida: z.boolean(),
+  horaCheckin: z
+    .string()
+    .trim()
+    .regex(/^([01]?\d|2[0-3]):[0-5]\d$/, "La hora de check-in tiene que ser HH:mm (ej. 07:00).")
+    .transform((h) => h.padStart(5, "0"))
+    .nullable(),
 });
 
 export async function guardarPuesto(_prev: ResultadoAdmin, form: FormData): Promise<ResultadoAdmin> {
@@ -92,9 +99,11 @@ export async function guardarPuesto(_prev: ResultadoAdmin, form: FormData): Prom
     esPartidaPosible: form.get("esPartidaPosible") === "on",
     registraIngreso: form.get("registraIngreso") === "on",
     registraSalida: form.get("registraSalida") === "on",
+    horaCheckin: String(form.get("horaCheckin") ?? "").trim() || null,
   });
   if (!d.success) return { error: d.error.issues[0].message };
   const { id, ...data } = d.data;
+  if (!data.esPartidaPosible) data.horaCheckin = null;
   if (!data.registraIngreso && !data.registraSalida) return { error: "El puesto tiene que registrar Ingreso o Salida." };
   if (!data.esPartidaPosible) {
     const parten = await prisma.caminante.count({ where: { puntoPartidaId: id } });
