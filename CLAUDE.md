@@ -62,7 +62,12 @@ La hoja "Resumen y control" se regenera con fórmulas COUNTIF.
 - Horas en `timestamptz` (UTC); se muestran y editan siempre en
   `America/Argentina/Buenos_Aires`. La caminata cruza la medianoche: al importar horas
   sin fecha, se infiere el día recorriendo el trayecto.
-- Se cargan las ~161 personas en memoria y se calcula en el servidor con `src/domain/`.
+- Se cargan las ~161 personas en memoria y se calcula con `src/domain/` (en el servidor,
+  y en el navegador para los contadores de "Mi puesto", así reflejan los cambios al instante).
+- Guardado en "Mi puesto" (`useRegistrosPuesto`): cambio optimista, envío serializado por
+  caminante+tipo, error visible por fila + banner + sección "Sin guardar" arriba de todo,
+  reintento automático al volver la señal. Si dos celulares cargan lo mismo, gana el primero
+  (`yaExistia`). La API rechaza (422) registros que no le corresponden al caminante.
 
 ## Convenciones
 - UI, nombres de dominio y comentarios en español. Mobile-first, botones grandes.
@@ -82,7 +87,7 @@ La hoja "Resumen y control" se regenera con fórmulas COUNTIF.
 ## Fases
 1. ✅ Setup + DB + seed + dominio con tests.
 2. ~~Auth y roles~~ (pospuesto) → código de acceso compartido en la fase 6.
-3. Vista "Mi puesto".
+3. ✅ Vista "Mi puesto" (`/puesto/[id]`; selector de puesto y nombre en `/`).
 4. Tablero, resumen y ficha (con abandono e inconsistencias).
 5. Importación / exportación XLSX.
 6. Código de acceso + deploy (Vercel + Neon).
