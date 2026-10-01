@@ -106,6 +106,9 @@ calculado) y una sección "Para revisar" con abandonos e inconsistencias.
   ficticio (`prisma/datos-ficticios.ts`).
 - Next 16: params asíncronos, `proxy.ts` en vez de `middleware.ts`. Consultar
   `node_modules/next/dist/docs/` antes de usar APIs de Next.
+- Toda página sin params que lea la base lleva `await connection()`: si no, en producción
+  se genera una sola vez al compilar y queda con datos viejos (en `npm run dev` no se nota;
+  verificar con `npx next build` que la ruta salga como ƒ Dynamic).
 
 ## Comandos
 - `npm run db:dev` — Postgres local (`prisma dev`, sin Docker).
