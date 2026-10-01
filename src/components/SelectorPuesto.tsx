@@ -57,9 +57,18 @@ function Formulario({ titulo, puestos, nombreInicial }: Omit<Props, "cambiar"> &
         placeholder="Tu nombre"
         className={`mt-1 w-full rounded-lg border px-3 py-3 text-lg ${falta ? "border-red-500" : "border-gray-300"}`}
       />
-      {falta && <p className="mt-1 text-sm text-red-600">Escribí tu nombre antes de elegir el puesto.</p>}
+      {falta && <p className="mt-1 text-sm text-red-600">Escribí tu nombre antes de elegir.</p>}
 
-      <h2 className="mt-6 font-semibold">¿En qué puesto estás?</h2>
+      <h2 className="mt-6 font-semibold">¿Hacés el check-in en la parroquia?</h2>
+      <button
+        type="button"
+        onClick={() => elegir("micro:checkin", "/checkin")}
+        className="mt-2 min-h-14 w-full rounded-xl border-2 border-blue-700 bg-white px-3 text-lg font-semibold text-blue-800 active:bg-blue-50"
+      >
+        📋 Check-in
+      </button>
+
+      <h2 className="mt-6 font-semibold">¿O en qué puesto estás?</h2>
       <div className="mt-2 grid gap-2">
         {puestos.map((p) => (
           <button
@@ -72,15 +81,6 @@ function Formulario({ titulo, puestos, nombreInicial }: Omit<Props, "cambiar"> &
           </button>
         ))}
       </div>
-
-      <h2 className="mt-6 font-semibold">¿Hacés el check-in en la parroquia?</h2>
-      <button
-        type="button"
-        onClick={() => elegir("micro:checkin", "/checkin")}
-        className="mt-2 min-h-14 w-full rounded-xl border-2 border-blue-700 bg-white px-3 text-lg font-semibold text-blue-800 active:bg-blue-50"
-      >
-        📋 Check-in
-      </button>
 
       <h2 className="mt-6 font-semibold">¿O controlás un micro?</h2>
       <div className="mt-2 grid grid-cols-2 gap-2">
