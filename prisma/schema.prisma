@@ -70,6 +70,7 @@ model Caminante {
   abandonoHora     DateTime?     @db.Timestamptz
   notas            String?
   registros        Registro[]
+  abordajes        Abordaje[]
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
 
@@ -111,6 +112,25 @@ model IntentoAcceso {
   @@index([ip, createdAt])
 }
 
-// Fase 2 (no implementado): Vehiculo (IDA | VUELTA, nombre, capacidad),
-// AsignacionVehiculo (caminante ↔ vehículo) y Abordaje (subió / no subió, hora).
-// Todo cuelga de Peregrinacion; no requiere tocar los modelos de arriba.
+enum Tramo {
+  IDA
+  VUELTA
+}
+
+/// Control de micros: quién subió al micro de ida (parroquia → Liniers) o de vuelta
+/// (desde Luján). No se asignan vehículos: solo "subió / no subió" (decisión del grupo).
+model Abordaje {
+  /// UUID generado por el cliente (reintentos idempotentes, igual que Registro).
+  id          String    @id
+  caminanteId String
+  caminante   Caminante @relation(fields: [caminanteId], references: [id], onDelete: Cascade)
+  tramo       Tramo
+  hora        DateTime  @db.Timestamptz
+  cargadoPor  String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([caminanteId, tramo])
+}
+
+// Pendiente (fase 2): modo offline con cola de sincronización.

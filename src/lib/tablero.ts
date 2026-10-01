@@ -7,6 +7,7 @@ import {
   registrosVigentes,
   type Posicion,
 } from "@/domain/recorrido";
+import { estadoMicro, type EstadoMicro } from "@/domain/micros";
 import { calcularResumen, type Resumen } from "@/domain/resumen";
 import type { PuestoDom, TipoRegistro } from "@/domain/tipos";
 import { prisma } from "./db";
@@ -45,6 +46,7 @@ export interface DatosTablero {
   resumen: Resumen;
   filas: FilaTablero[];
   posiciones: GrupoPosicion[];
+  micros: { IDA: EstadoMicro; VUELTA: EstadoMicro };
   generado: string;
 }
 
@@ -72,6 +74,12 @@ export async function cargarTablero(): Promise<DatosTablero | null> {
     }),
   );
   const registros = await prisma.registro.findMany({ where: { caminante: { peregrinacionId: peregrinacion.id } } });
+  const abordajes = await prisma.abordaje.findMany({
+    where: { caminante: { peregrinacionId: peregrinacion.id } },
+    select: { caminanteId: true, tramo: true },
+  });
+  const subieron = (tramo: "IDA" | "VUELTA") =>
+    new Set(abordajes.filter((a) => a.tramo === tramo).map((a) => a.caminanteId));
   const porCaminante = Map.groupBy(registros, (r) => r.caminanteId);
 
   const filas = peregrinacion.caminantes.map((c): FilaTablero => {
@@ -125,6 +133,10 @@ export async function cargarTablero(): Promise<DatosTablero | null> {
     posiciones: [...grupos.values()]
       .sort((a, b) => a.orden - b.orden)
       .map((g) => ({ clave: g.clave, texto: g.texto, cantidad: g.cantidad })),
+    micros: {
+      IDA: estadoMicro(peregrinacion.caminantes, "IDA", puestos, subieron("IDA")),
+      VUELTA: estadoMicro(peregrinacion.caminantes, "VUELTA", puestos, subieron("VUELTA")),
+    },
     generado: new Date().toISOString(),
   };
 }

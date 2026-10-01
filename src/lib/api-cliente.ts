@@ -1,7 +1,7 @@
 // Llamadas a la API desde el navegador. Con señal irregular, todo tiene timeout y los
 // errores dicen si vale la pena reintentar.
 
-import type { DatosPuesto, RegistroApi, RespuestaGuardar } from "./tipos-api";
+import type { AbordajeApi, DatosMicro, DatosPuesto, RegistroApi, RespuestaAbordaje, RespuestaGuardar } from "./tipos-api";
 
 export class ErrorApi extends Error {
   constructor(
@@ -69,4 +69,21 @@ export async function guardarAbandono(caminanteId: string, puestoId: string | nu
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ puestoId }),
   });
+}
+
+export async function obtenerMicro(tramo: "IDA" | "VUELTA"): Promise<DatosMicro> {
+  return (await pedir(`/api/micros/${tramo.toLowerCase()}`)).json();
+}
+
+export async function guardarAbordaje(a: AbordajeApi): Promise<RespuestaAbordaje> {
+  const res = await pedir(`/api/abordajes/${a.id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ caminanteId: a.caminanteId, tramo: a.tramo, hora: a.hora, cargadoPor: a.cargadoPor }),
+  });
+  return res.json();
+}
+
+export async function borrarAbordaje(id: string): Promise<void> {
+  await pedir(`/api/abordajes/${id}`, { method: "DELETE" });
 }

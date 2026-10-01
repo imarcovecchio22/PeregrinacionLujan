@@ -132,6 +132,13 @@ calculado) y una sección "Para revisar" con abandonos e inconsistencias.
    planilla (`/api/exportar`), editar peregrinación y puestos, activar/eliminar.
 6. ✅ Código de acceso; migraciones aplicadas en Neon. Falta: deploy en Vercel.
 
-**Fase 2 del producto (no implementar todavía):** control de micros (8 combis de vuelta,
-152 lugares; micro de ida a Liniers; vista "subió / no subió") y modo offline con cola
-de sincronización.
+### Control de micros (`/micro/ida`, `/micro/vuelta`)
+Decisión del grupo: **no se asignan vehículos**, solo se marca "subió / no subió" por tramo
+(tabla `Abordaje`, única por caminante+tramo). Lo marca una sola persona por tramo.
+- Ida: quienes parten del primer puesto con ida "Micro". Vuelta: quienes vuelven en
+  "Micro", **salvo los que abandonaron** (`src/domain/micros.ts`).
+- Si sube alguien no anotado se registra igual y se muestra aparte ("no anotados").
+- Misma mecánica que "Mi puesto" (`useAbordajes`, guardado visible, deshacer); se elige
+  desde el inicio y el celular lo recuerda (`dispositivo.puestoId = "micro:ida"`).
+
+**Pendiente (fase 2):** modo offline con cola de sincronización.

@@ -50,3 +50,34 @@ export interface RespuestaGuardar {
   /** Ya había un registro de otra persona para el mismo caminante/puesto/tipo: se conserva ese. */
   yaExistia: boolean;
 }
+
+export interface AbordajeApi {
+  id: string;
+  caminanteId: string;
+  tramo: "IDA" | "VUELTA";
+  /** ISO 8601 */
+  hora: string;
+  cargadoPor: string | null;
+}
+
+export interface FilaMicro {
+  caminante: CaminanteApi;
+  partida: string;
+  /** Anotado para este micro. */
+  esperado: boolean;
+  /** Si no está anotado, por qué (ej. "vuelve por su cuenta"). */
+  motivo: string | null;
+  abordaje: AbordajeApi | null;
+}
+
+export interface DatosMicro {
+  tramo: "IDA" | "VUELTA";
+  peregrinacionId: string;
+  filas: FilaMicro[];
+  generado: string;
+}
+
+export interface RespuestaAbordaje {
+  abordaje: AbordajeApi;
+  yaExistia: boolean;
+}

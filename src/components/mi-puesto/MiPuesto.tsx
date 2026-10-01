@@ -8,6 +8,8 @@ import { guardarDispositivo, useDispositivo } from "@/lib/dispositivo";
 import type { DatosPuesto } from "@/lib/tipos-api";
 import type { OtroCaminante } from "@/lib/tipos-api";
 import { agrupar, armarFila, caminanteDe, coincide, coincideCaminante, ORDEN_GRUPOS, type Grupo } from "@/lib/vista-puesto";
+import { EstadoGuardado } from "@/components/EstadoGuardado";
+import { PedirNombre } from "@/components/PedirNombre";
 import { Contadores } from "./Contadores";
 import { FilaCaminante } from "./FilaCaminante";
 import { useRegistrosPuesto } from "./useRegistrosPuesto";
@@ -216,62 +218,6 @@ export function MiPuesto({ inicial }: { inicial: DatosPuesto }) {
       )}
     </div>
   );
-}
-
-function PedirNombre() {
-  const [valor, setValor] = useState("");
-  return (
-    <form
-      className="m-3 rounded-lg border border-amber-300 bg-amber-50 p-3"
-      onSubmit={(e) => {
-        e.preventDefault();
-        if (valor.trim()) guardarDispositivo({ nombre: valor.trim() });
-      }}
-    >
-      <label className="block text-sm font-semibold">¿Quién está cargando en este celular?</label>
-      <div className="mt-2 flex gap-2">
-        <input
-          value={valor}
-          onChange={(e) => setValor(e.target.value)}
-          placeholder="Tu nombre"
-          className="flex-1 rounded-md border border-gray-300 px-3 py-2"
-        />
-        <button className="rounded-md bg-gray-900 px-4 font-semibold text-white">Listo</button>
-      </div>
-    </form>
-  );
-}
-
-/** Indicador grande de guardado, siempre visible arriba (header fijo). */
-function EstadoGuardado(props: { errores: number; enviando: number; guardado: boolean; onReintentar?: () => void }) {
-  const { errores, enviando, guardado, onReintentar } = props;
-  if (errores > 0) {
-    return (
-      <div role="alert" className="mt-2 flex items-center justify-between gap-2 rounded-lg bg-red-600 px-3 py-2 text-white">
-        <span className="text-lg font-bold">⚠️ {errores === 1 ? "1 cambio sin guardar" : `${errores} cambios sin guardar`}</span>
-        {onReintentar && (
-          <button type="button" onClick={onReintentar} className="rounded-md bg-white px-3 py-2 font-semibold text-red-700">
-            Reintentar
-          </button>
-        )}
-      </div>
-    );
-  }
-  if (enviando > 0) {
-    return (
-      <p role="status" className="mt-2 animate-pulse rounded-lg bg-amber-500 px-3 py-2 text-center text-lg font-bold text-white">
-        ⏳ Guardando{enviando > 1 ? ` ${enviando}` : ""}…
-      </p>
-    );
-  }
-  if (guardado) {
-    return (
-      <p role="status" className="mt-2 rounded-lg bg-green-600 px-3 py-2 text-center text-lg font-bold text-white">
-        ✓ Guardado
-      </p>
-    );
-  }
-  return null;
 }
 
 /** Si la búsqueda no está en este puesto, dice dónde está esa persona (si existe). */

@@ -55,6 +55,25 @@ export function Tablero({ datos }: { datos: DatosTablero }) {
         <Resumen resumen={datos.resumen} puestos={datos.puestos} />
       </div>
 
+      <section className="mt-3 grid grid-cols-2 gap-2">
+        {(["IDA", "VUELTA"] as const).map((t) => {
+          const m = datos.micros[t];
+          return (
+            <Link key={t} href={`/micro/${t.toLowerCase()}`} className="rounded-lg border border-gray-200 bg-white p-3">
+              <div className="text-sm font-semibold">🚌 Micro de {t === "IDA" ? "ida" : "vuelta"}</div>
+              <div className="font-mono text-xl font-bold">
+                {m.subieron}
+                <span className="text-sm font-normal"> / {m.esperados} subieron</span>
+              </div>
+              <div className="text-xs text-gray-600">
+                Faltan {m.faltan}
+                {m.extras > 0 && ` · ${m.extras} no anotados`}
+              </div>
+            </Link>
+          );
+        })}
+      </section>
+
       <section className="mt-3 rounded-lg border border-gray-200 bg-white p-3">
         <h2 className="font-semibold">¿Dónde están?</h2>
         <div className="mt-2 flex flex-wrap gap-2">

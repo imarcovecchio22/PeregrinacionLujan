@@ -56,7 +56,19 @@ async function main() {
         data: { abandonoTrasPuestoId: idPuesto.get(a.puesto)!, abandonoHora: a.hora },
       });
     }
-    console.log(`Demo: ${sim.registros.length} registros y ${sim.abandonos.length} abandonos simulados.`);
+    // Micro de ida: subieron los que van en micro y ya salieron de Liniers (un par no, para ver faltantes).
+    const salieronLiniers = new Set(sim.registros.filter((r) => r.puesto === "Liniers").map((r) => r.caminanteId));
+    const ida = creados.filter((c) => c.transporteIda === "MICRO" && salieronLiniers.has(c.id) && c.numero % 17 !== 0);
+    await prisma.abordaje.createMany({
+      data: ida.map((c) => ({
+        id: crypto.randomUUID(),
+        caminanteId: c.id,
+        tramo: "IDA" as const,
+        hora: new Date("2026-10-03T18:30:00-03:00"),
+        cargadoPor: "Demo",
+      })),
+    });
+    console.log(`Demo: ${sim.registros.length} registros, ${sim.abandonos.length} abandonos y ${ida.length} subidas al micro de ida.`);
   }
 
   console.log(`Seed listo: "${peregrinacion.nombre}" con ${caminantes.length} caminantes ficticios.`);

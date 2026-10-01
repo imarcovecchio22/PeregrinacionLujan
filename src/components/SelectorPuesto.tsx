@@ -16,13 +16,13 @@ export function SelectorPuesto({ titulo, puestos, cambiar }: Props) {
   const router = useRouter();
   const dispositivo = useDispositivo();
 
-  // Si este celular ya eligió puesto, ir directo ahí.
-  const puestoGuardado = puestos.find((p) => p.id === dispositivo?.puestoId);
+  // Si este celular ya eligió puesto (o micro), ir directo ahí.
+  const destino = destinoGuardado(dispositivo?.puestoId ?? null, puestos);
   useEffect(() => {
-    if (!cambiar && puestoGuardado) router.replace(`/puesto/${puestoGuardado.id}`);
-  }, [cambiar, puestoGuardado, router]);
+    if (!cambiar && destino) router.replace(destino);
+  }, [cambiar, destino, router]);
 
-  if (!dispositivo || (!cambiar && puestoGuardado)) return null;
+  if (!dispositivo || (!cambiar && destino)) return null;
 
   return <Formulario key={dispositivo.nombre} titulo={titulo} puestos={puestos} nombreInicial={dispositivo.nombre} />;
 }
@@ -32,13 +32,13 @@ function Formulario({ titulo, puestos, nombreInicial }: Omit<Props, "cambiar"> &
   const [nombre, setNombre] = useState(nombreInicial);
   const [falta, setFalta] = useState(false);
 
-  function elegir(puestoId: string) {
+  function elegir(puestoId: string, destino: string) {
     if (!nombre.trim()) {
       setFalta(true);
       return;
     }
     guardarDispositivo({ puestoId, nombre: nombre.trim() });
-    router.push(`/puesto/${puestoId}`);
+    router.push(destino);
   }
 
   return (
@@ -65,10 +65,24 @@ function Formulario({ titulo, puestos, nombreInicial }: Omit<Props, "cambiar"> &
           <button
             key={p.id}
             type="button"
-            onClick={() => elegir(p.id)}
+            onClick={() => elegir(p.id, `/puesto/${p.id}`)}
             className="min-h-14 rounded-xl border-2 border-gray-300 bg-white px-4 text-left text-lg font-semibold active:bg-gray-100"
           >
             {p.orden}. {p.nombre}
+          </button>
+        ))}
+      </div>
+
+      <h2 className="mt-6 font-semibold">¿O controlás un micro?</h2>
+      <div className="mt-2 grid grid-cols-2 gap-2">
+        {(["ida", "vuelta"] as const).map((t) => (
+          <button
+            key={t}
+            type="button"
+            onClick={() => elegir(`micro:${t}`, `/micro/${t}`)}
+            className="min-h-14 rounded-xl border-2 border-green-700 bg-white px-3 text-lg font-semibold text-green-800 active:bg-green-50"
+          >
+            🚌 {t === "ida" ? "Ida" : "Vuelta"}
           </button>
         ))}
       </div>
@@ -78,4 +92,11 @@ function Formulario({ titulo, puestos, nombreInicial }: Omit<Props, "cambiar"> &
       </Link>
     </main>
   );
+}
+
+/** Adónde mandar a un celular que ya eligió: un puesto ("<id>") o un micro ("micro:ida"). */
+function destinoGuardado(guardado: string | null, puestos: { id: string }[]): string | null {
+  if (!guardado) return null;
+  if (guardado === "micro:ida" || guardado === "micro:vuelta") return `/micro/${guardado.slice(6)}`;
+  return puestos.some((p) => p.id === guardado) ? `/puesto/${guardado}` : null;
 }

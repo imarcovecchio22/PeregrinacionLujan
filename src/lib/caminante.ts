@@ -7,11 +7,12 @@ export async function cargarFicha(id: string) {
     where: { id },
     include: {
       registros: { orderBy: { hora: "asc" } },
+      abordajes: true,
       peregrinacion: { include: { puestos: { orderBy: { orden: "asc" } } } },
     },
   });
   if (!c) return null;
-  const { registros, peregrinacion, ...caminante } = c;
+  const { registros, peregrinacion, abordajes, ...caminante } = c;
   const puestos = peregrinacion.puestos.map(({ id, orden, nombre, esPartidaPosible, registraIngreso, registraSalida }) => ({
     id,
     orden,
@@ -20,7 +21,7 @@ export async function cargarFicha(id: string) {
     registraIngreso,
     registraSalida,
   }));
-  return { caminante, puestos, registros: registros.map(registroApi), registrosDom: registros };
+  return { caminante, puestos, registros: registros.map(registroApi), registrosDom: registros, abordajes };
 }
 
 export async function siguienteNumero(peregrinacionId: string) {

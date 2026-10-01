@@ -5,7 +5,8 @@ import { FormAbandono } from "@/components/caminante/FormAbandono";
 import { FormCaminante } from "@/components/caminante/FormCaminante";
 import { RecorridoEditable, RegistrosSobrantes } from "@/components/caminante/RecorridoEditable";
 import { Nav } from "@/components/Nav";
-import { formatFechaHora } from "@/domain/hora";
+import { formatFechaHora, formatHora } from "@/domain/hora";
+import { esperadoEnMicro, motivoNoEsperado, NOMBRE_TRAMO, TRAMOS } from "@/domain/micros";
 import { describirPosicion, inconsistencias, posicionActual, registrosPlanificados } from "@/domain/recorrido";
 import { cargarFicha } from "@/lib/caminante";
 import { hrefTelefono } from "@/lib/vista-puesto";
@@ -15,7 +16,7 @@ export default async function FichaCaminante(props: PageProps<"/caminantes/[id]"
   const { id } = await props.params;
   const ficha = await cargarFicha(id);
   if (!ficha) notFound();
-  const { caminante: c, puestos, registros, registrosDom } = ficha;
+  const { caminante: c, puestos, registros, registrosDom, abordajes } = ficha;
 
   const partida = puestos.find((p) => p.id === c.puntoPartidaId)!;
   const posicion = describirPosicion(posicionActual(c, puestos, registrosDom), puestos);
@@ -71,6 +72,24 @@ export default async function FichaCaminante(props: PageProps<"/caminantes/[id]"
         <section className={tarjeta}>
           <h2 className="font-semibold">Recorrido</h2>
           <RecorridoEditable caminante={c} puestos={puestos} registros={registros} />
+        </section>
+
+        <section className={tarjeta}>
+          <h2 className="font-semibold">Micros</h2>
+          <ul className="mt-1 grid gap-1 text-sm">
+            {TRAMOS.map((t) => {
+              const a = abordajes.find((x) => x.tramo === t);
+              const anotado = esperadoEnMicro(c, t, puestos);
+              return (
+                <li key={t} className="flex items-center justify-between gap-2">
+                  <span>{NOMBRE_TRAMO[t]}</span>
+                  <span className={a ? "font-semibold text-green-800" : "text-gray-500"}>
+                    {a ? `Subió ${formatHora(a.hora)}` : anotado ? "No subió todavía" : `No anotado (${motivoNoEsperado(c, t, puestos)})`}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
         </section>
 
         <section className={tarjeta}>
