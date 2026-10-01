@@ -27,10 +27,10 @@ interface Props {
 
 const TIPOS: ClaveTipo[] = ["INGRESO", "SALIDA", "ABANDONO"];
 
-export function etiqueta(tipo: ClaveTipo, esPartida: boolean): string {
+export function etiqueta(tipo: ClaveTipo): string {
   if (tipo === "INGRESO") return "Ingresó";
   if (tipo === "ABANDONO") return "Abandonó";
-  return esPartida ? "Presente / Salió" : "Salió";
+  return "Salió";
 }
 
 function FilaCaminanteBase(props: Props) {
@@ -64,7 +64,7 @@ function FilaCaminanteBase(props: Props) {
       return;
     }
     setAviso(null);
-    onMarcar(c.id, tipo, `#${c.numero} ${c.nombreCompleto}: ${etiqueta(tipo, esPartida).toLowerCase()}`);
+    onMarcar(c.id, tipo, `#${c.numero} ${c.nombreCompleto}: ${etiqueta(tipo).toLowerCase()}`);
   }
 
   function abandono() {
@@ -139,7 +139,7 @@ function FilaCaminanteBase(props: Props) {
           .map((tipo) => {
             const r = fila.registro(tipo);
             const guardando = estado(tipo)?.estado === "enviando";
-            const texto = etiqueta(tipo, esPartida);
+            const texto = etiqueta(tipo);
             if (r) {
               return (
                 <button
@@ -168,9 +168,9 @@ function FilaCaminanteBase(props: Props) {
               </button>
             );
           })}
-        {/* En su punto de partida no se marca abandono: si no vino, lo muestra el check-in.
-            Si ya tiene uno marcado, el botón queda para poder quitarlo. */}
-        {(!esPartida || abandonoEn) && (
+        {/* En su punto de partida solo se marca la Salida: si no vino, lo muestra el check-in
+            (un abandono marcado por error se quita desde la ficha). */}
+        {!esPartida && (
           <button
             type="button"
             onClick={abandono}
@@ -212,13 +212,13 @@ function FilaCaminanteBase(props: Props) {
       {editando && fila.registro(editando) && (
         <EditorHora
           registro={fila.registro(editando)!}
-          titulo={etiqueta(editando, esPartida)}
+          titulo={etiqueta(editando)}
           onGuardar={(hhmm) => {
             onEditarHora(fila.registro(editando)!, hhmm);
             setEditando(null);
           }}
           onBorrar={() => {
-            if (confirm(`¿Borrar "${etiqueta(editando, esPartida)}" de #${c.numero}?`)) {
+            if (confirm(`¿Borrar "${etiqueta(editando)}" de #${c.numero}?`)) {
               onBorrar(fila.registro(editando)!);
               setEditando(null);
             }
@@ -235,7 +235,7 @@ function FilaCaminanteBase(props: Props) {
           <div key={tipo} className="mt-2 rounded-md border-2 border-red-400 bg-white p-2 text-red-800">
             <p>
               <b>⚠️ NO SE GUARDÓ</b> ({accion}
-              {etiqueta(tipo, esPartida)}): {e.error}
+              {etiqueta(tipo)}): {e.error}
             </p>
             <div className="mt-2 flex gap-2">
               {e.reintentable && (

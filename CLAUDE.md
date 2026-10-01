@@ -32,8 +32,8 @@ Implementadas y testeadas en `src/domain/recorrido.ts`. **No se guardan: se deri
   sin **check-in** en la parroquia no deja marcar Ingreso ni Salida en ningún puesto (fila
   "Sin check-in" y aviso "No hizo el check-in"), y no deja marcar la Salida de un puesto
   que espera Ingreso sin haber marcado el Ingreso (aviso "Primero tiene que llegar").
-  En su punto de partida no se ofrece "Abandonó" (si no vino, lo muestra el check-in);
-  solo aparece ahí si ya tiene un abandono marcado, para poder quitarlo.
+  En su punto de partida solo hay un botón "Salió" (sin "Abandonó": si no vino, lo muestra
+  el check-in; un abandono cargado por error se quita desde la ficha).
 
 ### Resumen esperado (test de aceptación, `src/domain/recorrido.test.ts`)
 Con los datos de la planilla 2026 (y con el seed ficticio, que respeta las proporciones):

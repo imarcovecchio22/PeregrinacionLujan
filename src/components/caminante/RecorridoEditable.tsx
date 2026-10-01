@@ -54,7 +54,7 @@ export function RecorridoEditable({ caminante, puestos, registros }: Props) {
                 caminanteId={caminante.id}
                 puestoId={p.id}
                 tipo={tipo}
-                etiqueta={rol === "PARTIDA" ? "Presente / Salió" : nombreTipo(tipo)}
+                etiqueta={nombreTipo(tipo)}
                 registro={registros.find((r) => r.puestoId === p.id && r.tipo === tipo)}
                 esperado={vigentes.includes(tipo)}
                 referencia={referencia(p.id, tipo)}
