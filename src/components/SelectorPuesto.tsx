@@ -96,7 +96,10 @@ function Formulario({ titulo, puestos, nombreInicial }: Omit<Props, "cambiar"> &
         ))}
       </div>
 
-      <Link href="/tablero" className="mt-8 block text-center text-blue-700">
+      <Link
+        href="/tablero"
+        className="mt-8 flex min-h-12 items-center justify-center rounded-xl border-2 border-gray-300 bg-white px-4 text-base font-semibold text-blue-700 active:bg-gray-100"
+      >
         Ver resumen general →
       </Link>
     </main>
