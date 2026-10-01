@@ -25,8 +25,12 @@ export function MiMicro({ inicial }: { inicial: DatosMicro }) {
 
   // Check-in: un turno por vez (arranca en el que corresponde a esta hora).
   const esCheckin = s.tramo === "CHECKIN";
-  const turnos = inicial.turnos;
-  const [turno, setTurno] = useState(() => turnoActual(turnos, formatHora(new Date()))?.hora ?? null);
+  // Los turnos vienen con cada actualización (si cambian las horas en /admin, se ajusta solo).
+  const turnos = s.turnos;
+  const [elegido, setTurno] = useState<string | null | undefined>(undefined);
+  const turno = turnos.some((t) => t.hora === elegido)
+    ? (elegido ?? null)
+    : (turnoActual(turnos, formatHora(new Date()))?.hora ?? null);
   const filas = useMemo(() => (esCheckin ? filasDelTurno(s.filas, turno) : s.filas), [esCheckin, s.filas, turno]);
 
   // Este celular queda "en" este micro (al abrir la app vuelve acá).
