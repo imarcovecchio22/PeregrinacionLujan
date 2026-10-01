@@ -101,15 +101,32 @@ export function normalizar(s: string): string {
     .trim();
 }
 
-/** Busca por número (exacto), nombre (todas las palabras, sin acentos) o teléfono (dígitos). */
-export function coincide(f: FilaPuesto, busqueda: string): boolean {
+export interface Buscable {
+  numero: number;
+  nombreCompleto: string;
+  dni: string | null;
+  telefonos: string[];
+}
+
+/**
+ * Busca por número (exacto, hasta 4 cifras), nombre (todas las palabras, en cualquier orden,
+ * sin acentos), DNI (con o sin puntos) o teléfono (5 cifras o más).
+ */
+export function coincideCaminante(c: Buscable, busqueda: string): boolean {
   const q = normalizar(busqueda);
   if (!q) return true;
-  if (/^#?\d{1,4}$/.test(q)) return String(f.caminante.numero) === q.replace("#", "");
-  const nombre = normalizar(f.caminante.nombreCompleto);
+  if (/^#?\d{1,4}$/.test(q)) return String(c.numero) === q.replace("#", "");
+  const nombre = normalizar(c.nombreCompleto);
   if (q.split(/\s+/).every((palabra) => nombre.includes(palabra))) return true;
+  if (!/^[\d\s.\-/+()]+$/.test(q)) return false;
   const digitos = q.replace(/\D/g, "");
-  return digitos.length >= 4 && f.caminante.telefonos.some((t) => t.replace(/\D/g, "").includes(digitos));
+  if (digitos.length < 5) return false;
+  const de = (s: string) => s.replace(/\D/g, "");
+  return (!!c.dni && de(c.dni).includes(digitos)) || c.telefonos.some((t) => de(t).includes(digitos));
+}
+
+export function coincide(f: FilaPuesto, busqueda: string): boolean {
+  return coincideCaminante(f.caminante, busqueda);
 }
 
 /** href para llamar: deja solo dígitos (y el + inicial). */

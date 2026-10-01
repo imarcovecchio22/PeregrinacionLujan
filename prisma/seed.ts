@@ -28,6 +28,7 @@ async function main() {
       numero: c.numero,
       nombreCompleto: c.nombreCompleto,
       telefonos: c.telefonos,
+      dni: c.dni,
       transporteIda: c.transporteIda,
       transporteVuelta: c.transporteVuelta,
       puntoPartidaId: idPuesto.get(c.partida)!,

@@ -91,6 +91,7 @@ function FilaCaminanteBase(props: Props) {
         </p>
       )}
 
+      {c.dni && <p className="text-sm text-gray-600">DNI {c.dni}</p>}
       {c.telefonos.length > 0 && (
         <div className="mt-1 flex flex-wrap gap-2">
           {c.telefonos.map((t) => {

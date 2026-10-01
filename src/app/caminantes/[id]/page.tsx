@@ -39,6 +39,7 @@ export default async function FichaCaminante(props: PageProps<"/caminantes/[id]"
           <p className="text-gray-700">
             Sale desde <b>{partida.nombre}</b> · {posicion}
           </p>
+          {c.dni && <p className="text-sm text-gray-600">DNI {c.dni}</p>}
           {c.telefonos.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-2">
               {c.telefonos.map((t) => {

@@ -23,6 +23,7 @@ export interface FilaPrevia {
   fila: number;
   numero: number;
   nombreCompleto: string;
+  dni: string | null;
   partida: string;
   telefonos: string[];
   ida: string;
@@ -88,6 +89,7 @@ export async function previsualizar(archivo: File, op: OpcionesImportacion): Pro
       fila: f.fila,
       numero: f.numero,
       nombreCompleto: f.nombreCompleto,
+      dni: f.dni,
       partida: nombre(f.puntoPartidaId),
       telefonos: f.telefonos,
       ida: f.puntoPartidaId === puestos[0].id ? txt(f.transporteIda) : "NA",

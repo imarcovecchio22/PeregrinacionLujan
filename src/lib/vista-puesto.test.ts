@@ -24,6 +24,7 @@ function fila(numero: number, partida: string, registros: Partial<RegistroApi>[]
       numero,
       nombreCompleto: `Pérez Ñandú ${numero}`,
       telefonos: ["11 4444-5555"],
+      dni: "30.111.222",
       notas: null,
       puntoPartidaId: partida,
       abandonoTrasPuestoId: abandono,
@@ -118,6 +119,12 @@ describe("búsqueda", () => {
   });
   it("por teléfono", () => {
     expect(coincide(f, "4444-55")).toBe(true);
+  });
+  it("por DNI, con o sin puntos", () => {
+    expect(coincide(f, "30111222")).toBe(true);
+    expect(coincide(f, "30.111.222")).toBe(true);
+    expect(coincide(f, "11122")).toBe(true);
+    expect(coincide(f, "30111999")).toBe(false);
   });
 });
 

@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { formatHora } from "@/domain/hora";
 import type { PuestoDom, TipoRegistro } from "@/domain/tipos";
 import type { CeldaTablero, DatosTablero, FilaTablero } from "@/lib/tablero";
-import { normalizar } from "@/lib/vista-puesto";
+import { coincideCaminante } from "@/lib/vista-puesto";
 import { Resumen } from "./Resumen";
 
 const REFRESCO_MS = 20_000;
@@ -31,12 +31,11 @@ export function Tablero({ datos }: { datos: DatosTablero }) {
 
   const conInconsistencias = datos.filas.filter((f) => f.inconsistencias.length > 0).length;
   const filas = useMemo(() => {
-    const q = normalizar(busqueda);
     return datos.filas.filter(
       (f) =>
         (!posicion || f.clavePosicion === posicion) &&
         (!soloInconsistencias || f.inconsistencias.length > 0) &&
-        (!q || String(f.numero) === q.replace("#", "") || normalizar(f.nombreCompleto).includes(q)),
+        coincideCaminante(f, busqueda),
     );
   }, [datos.filas, busqueda, posicion, soloInconsistencias]);
 
@@ -79,7 +78,7 @@ export function Tablero({ datos }: { datos: DatosTablero }) {
           type="search"
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
-          placeholder="Buscar nombre o número"
+          placeholder="Buscar nombre, número o DNI"
           className="min-w-0 flex-1 basis-full rounded-lg border border-gray-300 bg-white px-3 py-2 sm:basis-auto"
         />
         {conInconsistencias > 0 && (

@@ -40,6 +40,8 @@ Rodríguez 148, Luján 161.
 - `nombreCompleto` es texto libre: algunos vienen "Apellido Nombre" y otros "Nombre
   Apellido". **Nunca separar ni invertir.**
 - `telefonos[]`: uno o más, guardados tal cual (no normalizar formatos no AMBA).
+- `dni` opcional, tal cual vino. Búsqueda (Mi puesto y tablero, `coincideCaminante`): número,
+  nombre (palabras en cualquier orden, sin acentos), DNI (con o sin puntos) o teléfono.
 - `transporteIda` solo aplica a quienes parten de Liniers; `transporteVuelta` a todos.
 - **No agregar otros datos personales** (edad, domicilio, mail, pago, etc.): se
   excluyeron a propósito.

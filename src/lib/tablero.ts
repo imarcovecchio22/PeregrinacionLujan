@@ -22,6 +22,7 @@ export interface FilaTablero {
   id: string;
   numero: number;
   nombreCompleto: string;
+  dni: string | null;
   telefonos: string[];
   puntoPartidaId: string;
   celdas: Record<string, CeldaTablero>;
@@ -90,6 +91,7 @@ export async function cargarTablero(): Promise<DatosTablero | null> {
       id: c.id,
       numero: c.numero,
       nombreCompleto: c.nombreCompleto,
+      dni: c.dni,
       telefonos: c.telefonos,
       puntoPartidaId: c.puntoPartidaId,
       celdas,

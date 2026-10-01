@@ -17,6 +17,16 @@ export function MiPuesto({ inicial }: { inicial: DatosPuesto }) {
   const s = useRegistrosPuesto(inicial, nombre);
   const { puesto, puestos } = s.datos;
   const [busqueda, setBusqueda] = useState("");
+  // Secciones desplegables: las de trabajo arrancan abiertas; Completos/Abandonaron, cerradas.
+  const [abiertos, setAbiertos] = useState<Set<Grupo>>(() => new Set<Grupo>(["FALTAN_LLEGAR", "EN_EL_PUESTO"]));
+  const alternar = (g: Grupo, abierto: boolean) =>
+    setAbiertos((s) => {
+      if (s.has(g) === abierto) return s;
+      const n = new Set(s);
+      if (abierto) n.add(g);
+      else n.delete(g);
+      return n;
+    });
 
   // Quien abre el link de un puesto queda "en" ese puesto.
   useEffect(() => {
@@ -115,7 +125,7 @@ export function MiPuesto({ inicial }: { inicial: DatosPuesto }) {
           type="search"
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
-          placeholder="Buscar por nombre, número o teléfono"
+          placeholder="Buscar por nombre, número o DNI"
           className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 text-base"
           enterKeyHint="search"
         />
@@ -153,17 +163,25 @@ export function MiPuesto({ inicial }: { inicial: DatosPuesto }) {
           </ul>
         );
         const encabezado = `${titulos[g]} (${lista.length})`;
-        const plegado = (g === "COMPLETOS" || g === "ABANDONARON") && !busqueda;
-        return plegado ? (
-          <details key={g} className="border-t border-gray-200">
-            <summary className="cursor-pointer bg-gray-100 px-3 py-3 font-semibold text-gray-700">{encabezado}</summary>
+        // "Sin guardar" no se puede cerrar (un error nunca queda escondido); buscando, todo abierto.
+        if (g === "SIN_GUARDAR") {
+          return (
+            <section key={g}>
+              <h2 className="bg-red-100 px-3 py-3 font-semibold text-red-900">{encabezado}</h2>
+              {items}
+            </section>
+          );
+        }
+        return (
+          <details
+            key={g}
+            open={!!busqueda || abiertos.has(g)}
+            onToggle={(e) => !busqueda && alternar(g, e.currentTarget.open)}
+            className="border-t border-gray-200"
+          >
+            <summary className="cursor-pointer bg-gray-100 px-3 py-3 font-semibold text-gray-800 select-none">{encabezado}</summary>
             {items}
           </details>
-        ) : (
-          <section key={g}>
-            <h2 className="bg-gray-100 px-3 py-2 font-semibold text-gray-800">{encabezado}</h2>
-            {items}
-          </section>
         );
       })}
       {filas.length > 0 && ORDEN_GRUPOS.every((g) => grupos[g].length === 0) && (

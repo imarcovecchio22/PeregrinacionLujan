@@ -12,6 +12,8 @@ export interface CaminanteFicticio {
   numero: number;
   nombreCompleto: string;
   telefonos: string[];
+  /** Ficticio (con puntos, como se suele escribir); algunos sin DNI. */
+  dni: string | null;
   partida: "Liniers" | "La Reja" | "Rodríguez";
   transporteIda: Transporte | null;
   transporteVuelta: Transporte;
@@ -70,6 +72,7 @@ export function generarCaminantesFicticios(): CaminanteFicticio[] {
       numero: i + 1,
       nombreCompleto,
       telefonos: [telefono()],
+      dni: i % 10 === 9 ? null : `${40 + (i % 9)}.${String(100 + i).padStart(3, "0")}.${String(Math.floor(rnd() * 1000)).padStart(3, "0")}`,
       ...b,
       transporteVuelta: vuelvenPorSuCuenta.has(i) ? "POR_SU_CUENTA" : "MICRO",
     };

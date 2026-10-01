@@ -199,6 +199,7 @@ export function Importador({ activa, sugerencia }: Props) {
                   <tr>
                     <th className="pr-2">N°</th>
                     <th className="pr-2">Apellido y nombre</th>
+                    <th className="pr-2">DNI</th>
                     <th className="pr-2">Sale desde</th>
                     <th className="pr-2">Teléfono</th>
                     <th className="pr-2">Ida</th>
@@ -211,6 +212,7 @@ export function Importador({ activa, sugerencia }: Props) {
                     <tr key={f.fila} className="border-t border-gray-100">
                       <td className="pr-2 font-mono">{f.numero}</td>
                       <td className="pr-2">{f.nombreCompleto}</td>
+                      <td className="pr-2 whitespace-nowrap">{f.dni ?? ""}</td>
                       <td className="pr-2">{f.partida}</td>
                       <td className="pr-2 whitespace-nowrap">{f.telefonos.join(" / ")}</td>
                       <td className="pr-2">{f.ida}</td>

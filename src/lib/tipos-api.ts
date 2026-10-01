@@ -16,6 +16,7 @@ export interface CaminanteApi extends CaminanteDom {
   numero: number;
   nombreCompleto: string;
   telefonos: string[];
+  dni: string | null;
   notas: string | null;
 }
 

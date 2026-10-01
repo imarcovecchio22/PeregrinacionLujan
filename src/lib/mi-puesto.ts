@@ -52,6 +52,7 @@ export async function cargarDatosPuesto(puestoId: string): Promise<DatosPuesto |
         numero: c.numero,
         nombreCompleto: c.nombreCompleto,
         telefonos: c.telefonos,
+        dni: c.dni,
         notas: c.notas,
         puntoPartidaId: c.puntoPartidaId,
         abandonoTrasPuestoId: c.abandonoTrasPuestoId,
