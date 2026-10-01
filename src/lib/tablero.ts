@@ -7,7 +7,6 @@ import {
   registrosVigentes,
   type Posicion,
 } from "@/domain/recorrido";
-import { nombreTurno, turnoDe, turnosCheckin } from "@/domain/checkin";
 import { estadoMicro, type EstadoMicro, type Tramo } from "@/domain/micros";
 import { calcularResumen, type Resumen } from "@/domain/resumen";
 import type { PuestoDom, TipoRegistro } from "@/domain/tipos";
@@ -48,8 +47,8 @@ export interface DatosTablero {
   filas: FilaTablero[];
   posiciones: GrupoPosicion[];
   micros: { IDA: EstadoMicro; VUELTA: EstadoMicro };
-  /** Check-in en la parroquia, por turno. */
-  checkin: { nombre: string; llegaron: number; total: number }[];
+  /** Check-in en la parroquia (se espera a todos). */
+  checkin: EstadoMicro;
   generado: string;
 }
 
@@ -67,14 +66,13 @@ export async function cargarTablero(): Promise<DatosTablero | null> {
   });
   if (!peregrinacion) return null;
   const puestos: PuestoDom[] = peregrinacion.puestos.map(
-    ({ id, orden, nombre, esPartidaPosible, registraIngreso, registraSalida, horaCheckin }) => ({
+    ({ id, orden, nombre, esPartidaPosible, registraIngreso, registraSalida }) => ({
       id,
       orden,
       nombre,
       esPartidaPosible,
       registraIngreso,
       registraSalida,
-      horaCheckin,
     }),
   );
   const registros = await prisma.registro.findMany({ where: { caminante: { peregrinacionId: peregrinacion.id } } });
@@ -141,11 +139,7 @@ export async function cargarTablero(): Promise<DatosTablero | null> {
       IDA: estadoMicro(peregrinacion.caminantes, "IDA", puestos, subieron("IDA")),
       VUELTA: estadoMicro(peregrinacion.caminantes, "VUELTA", puestos, subieron("VUELTA")),
     },
-    checkin: turnosCheckin(puestos).map((t) => {
-      const del = peregrinacion.caminantes.filter((c) => turnoDe(c, puestos) === t.hora);
-      const llegaron = subieron("CHECKIN");
-      return { nombre: nombreTurno(t), llegaron: del.filter((c) => llegaron.has(c.id)).length, total: del.length };
-    }),
+    checkin: estadoMicro(peregrinacion.caminantes, "CHECKIN", puestos, subieron("CHECKIN")),
     generado: new Date().toISOString(),
   };
 }

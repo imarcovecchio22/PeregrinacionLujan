@@ -13,14 +13,13 @@ export async function cargarFicha(id: string) {
   });
   if (!c) return null;
   const { registros, peregrinacion, abordajes, ...caminante } = c;
-  const puestos = peregrinacion.puestos.map(({ id, orden, nombre, esPartidaPosible, registraIngreso, registraSalida, horaCheckin }) => ({
+  const puestos = peregrinacion.puestos.map(({ id, orden, nombre, esPartidaPosible, registraIngreso, registraSalida }) => ({
     id,
     orden,
     nombre,
     esPartidaPosible,
     registraIngreso,
     registraSalida,
-    horaCheckin,
   }));
   return { caminante, puestos, registros: registros.map(registroApi), registrosDom: registros, abordajes };
 }

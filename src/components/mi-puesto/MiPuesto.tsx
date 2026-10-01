@@ -156,6 +156,7 @@ export function MiPuesto({ inicial }: { inicial: DatosPuesto }) {
                 cambios={s.cambios}
                 recientes={s.recientes}
                 onMarcar={marcar}
+                onRefrescar={s.refrescar}
                 onAbandono={marcarAbandono}
                 onEditarHora={s.editarHora}
                 onBorrar={s.borrar}

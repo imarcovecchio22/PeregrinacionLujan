@@ -11,8 +11,6 @@ export interface PuestoDom {
   esPartidaPosible: boolean;
   registraIngreso: boolean;
   registraSalida: boolean;
-  /** Hora del check-in en la parroquia ("HH:mm") de quienes parten de acá. */
-  horaCheckin?: string | null;
 }
 
 export interface CaminanteDom {

@@ -209,7 +209,6 @@ export function useAbordajes(inicial: DatosMicro, cargadoPor: string) {
 
   return {
     tramo,
-    turnos: datos.turnos,
     filas,
     cambios,
     recientes,

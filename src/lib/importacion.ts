@@ -121,13 +121,12 @@ export async function importar(archivo: File, op: OpcionesImportacion) {
             fechaInicio: new Date(op.fechaInicio),
             activa: true,
             puestos: {
-              create: puestos.map(({ orden, nombre, esPartidaPosible, registraIngreso, registraSalida, horaCheckin }) => ({
+              create: puestos.map(({ orden, nombre, esPartidaPosible, registraIngreso, registraSalida }) => ({
                 orden,
                 nombre,
                 esPartidaPosible,
                 registraIngreso,
                 registraSalida,
-                horaCheckin,
               })),
             },
           },

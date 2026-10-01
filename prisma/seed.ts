@@ -68,7 +68,22 @@ async function main() {
         cargadoPor: "Demo",
       })),
     });
-    console.log(`Demo: ${sim.registros.length} registros, ${sim.abandonos.length} abandonos y ${ida.length} subidas al micro de ida.`);
+    // Check-in: todos los que ya tienen registros (sin check-in no se marca nada) y la mayoría
+    // de los que todavía no salieron (algunos no, para ver el aviso en "Mi puesto").
+    const conRegistros = new Set(sim.registros.map((r) => r.caminanteId));
+    const checkin = creados.filter((c) => conRegistros.has(c.id) || c.numero % 5 !== 0);
+    await prisma.abordaje.createMany({
+      data: checkin.map((c) => ({
+        id: crypto.randomUUID(),
+        caminanteId: c.id,
+        tramo: "CHECKIN" as const,
+        hora: new Date("2026-10-03T18:00:00-03:00"),
+        cargadoPor: "Demo",
+      })),
+    });
+    console.log(
+      `Demo: ${sim.registros.length} registros, ${sim.abandonos.length} abandonos, ${checkin.length} check-in y ${ida.length} subidas al micro de ida.`,
+    );
   }
 
   console.log(`Seed listo: "${peregrinacion.nombre}" con ${caminantes.length} caminantes ficticios.`);

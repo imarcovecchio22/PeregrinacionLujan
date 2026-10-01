@@ -31,6 +31,7 @@ function fila(numero: number, partida: string, registros: Partial<RegistroApi>[]
       transporteIda: null,
       transporteVuelta: "MICRO",
     },
+    checkin: "2026-10-03T10:00:00.000Z",
     registros: registros.map((r, i) => ({
       id: `r${numero}-${i}`,
       caminanteId: id,

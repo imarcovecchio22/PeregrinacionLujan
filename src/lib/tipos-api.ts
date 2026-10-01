@@ -25,6 +25,8 @@ export interface FilaPuesto {
   caminante: CaminanteApi;
   /** Registros de este caminante en este puesto. */
   registros: RegistroApi[];
+  /** ISO: hora del check-in en la parroquia, o null si no lo hizo (sin check-in no se marca nada). */
+  checkin: string | null;
 }
 
 export interface OtroCaminante {
@@ -64,8 +66,6 @@ export interface AbordajeApi {
 export interface FilaMicro {
   caminante: CaminanteApi;
   partida: string;
-  /** Hora del turno de check-in de su partida ("HH:mm"). */
-  turno: string | null;
   /** Anotado para este micro. */
   esperado: boolean;
   /** Si no está anotado, por qué (ej. "vuelve por su cuenta"). */
@@ -76,8 +76,6 @@ export interface FilaMicro {
 export interface DatosMicro {
   tramo: Tramo;
   peregrinacionId: string;
-  /** Turnos de check-in (para la pantalla de check-in). */
-  turnos: { hora: string | null; nombre: string }[];
   filas: FilaMicro[];
   generado: string;
 }

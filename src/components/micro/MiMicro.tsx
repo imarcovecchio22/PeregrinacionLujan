@@ -8,8 +8,7 @@ import { formatHora } from "@/domain/hora";
 import { NOMBRE_TRAMO } from "@/domain/micros";
 import { guardarDispositivo, useDispositivo } from "@/lib/dispositivo";
 import type { DatosMicro } from "@/lib/tipos-api";
-import { turnoActual } from "@/domain/checkin";
-import { agruparMicro, filasDelTurno, grupoMicro, ORDEN_GRUPOS_MICRO, textosTramo, type GrupoMicro } from "@/lib/vista-micro";
+import { agruparMicro, grupoMicro, ORDEN_GRUPOS_MICRO, textosTramo, type GrupoMicro } from "@/lib/vista-micro";
 import { FilaMicro } from "./FilaMicro";
 import { useAbordajes } from "./useAbordajes";
 
@@ -23,15 +22,7 @@ export function MiMicro({ inicial }: { inicial: DatosMicro }) {
   const [abiertos, setAbiertos] = useState<Set<GrupoMicro>>(() => new Set<GrupoMicro>(["FALTAN", "EXTRAS"]));
   const textos = textosTramo(s.tramo);
 
-  // Check-in: un turno por vez (arranca en el que corresponde a esta hora).
-  const esCheckin = s.tramo === "CHECKIN";
-  // Los turnos vienen con cada actualización (si cambian las horas en /admin, se ajusta solo).
-  const turnos = s.turnos;
-  const [elegido, setTurno] = useState<string | null | undefined>(undefined);
-  const turno = turnos.some((t) => t.hora === elegido)
-    ? (elegido ?? null)
-    : (turnoActual(turnos, formatHora(new Date()))?.hora ?? null);
-  const filas = useMemo(() => (esCheckin ? filasDelTurno(s.filas, turno) : s.filas), [esCheckin, s.filas, turno]);
+  const filas = s.filas;
 
   // Este celular queda "en" este micro (al abrir la app vuelve acá).
   useEffect(() => {
@@ -42,8 +33,7 @@ export function MiMicro({ inicial }: { inicial: DatosMicro }) {
   // `esperado` viene calculado del servidor (abandonos incluidos); los contadores salen de las filas.
   const esperados = filas.filter((f) => f.esperado);
   const subieron = esperados.filter((f) => f.abordaje).length;
-  // En el check-in, los de otro turno no cuentan acá (tienen su pestaña).
-  const extras = esCheckin ? 0 : filas.filter((f) => !f.esperado && f.abordaje).length;
+  const extras = filas.filter((f) => !f.esperado && f.abordaje).length;
 
   const errores = [...s.cambios.values()].filter((c) => c.estado === "error");
   const enviando = [...s.cambios.values()].filter((c) => c.estado === "enviando").length;
@@ -63,16 +53,16 @@ export function MiMicro({ inicial }: { inicial: DatosMicro }) {
   const marcarSubio = useCallback(
     (id: string, desc: string) => {
       const f = filas.find((x) => x.caminante.id === id);
-      const g = f ? grupoMicro(f, !esCheckin) : null;
+      const g = f ? grupoMicro(f) : null;
       if (g) setFijas((m) => new Map(m).set(id, fijasVigentes.get(id) ?? g));
       marcarBase(id, desc);
     },
-    [filas, fijasVigentes, marcarBase, esCheckin],
+    [filas, fijasVigentes, marcarBase],
   );
 
   const { grupos, noAnotados } = useMemo(
-    () => agruparMicro(filas, busqueda, conError, fijasVigentes, !esCheckin),
-    [filas, busqueda, conError, fijasVigentes, esCheckin],
+    () => agruparMicro(filas, busqueda, conError, fijasVigentes),
+    [filas, busqueda, conError, fijasVigentes],
   );
   const titulos: Record<GrupoMicro, string> = {
     SIN_GUARDAR: "⚠️ Sin guardar",
@@ -116,32 +106,6 @@ export function MiMicro({ inicial }: { inicial: DatosMicro }) {
           guardado={s.recientes.size > 0}
           onReintentar={errores.some((e) => e.reintentable) ? s.reintentarTodo : undefined}
         />
-        {esCheckin && turnos.length > 1 && (
-          <div className="mt-2 grid auto-cols-fr grid-flow-col gap-1 rounded-xl bg-gray-100 p-1" role="tablist">
-            {turnos.map((t) => {
-              const faltan = s.filas.filter((f) => f.turno === t.hora && !f.abordaje).length;
-              const activo = t.hora === turno;
-              return (
-                <button
-                  key={t.hora ?? "sin"}
-                  type="button"
-                  role="tab"
-                  aria-selected={activo}
-                  onClick={() => {
-                    setTurno(t.hora);
-                    setFijas(new Map());
-                  }}
-                  className={`min-h-12 rounded-lg px-2 py-1 text-left leading-tight ${activo ? "bg-blue-700 text-white shadow" : "text-gray-800"}`}
-                >
-                  <span className="block text-lg font-bold">{t.hora ?? "Sin horario"}</span>
-                  <span className="block text-xs">
-                    {t.nombre.split(" · ")[1]} · faltan {faltan}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        )}
         <div className="mt-2 grid grid-cols-2 gap-2">
           <div className={`rounded-lg border px-2 py-1 text-center ${esperados.length - subieron === 0 ? "border-gray-300 bg-gray-50 text-gray-500" : "border-green-300 bg-green-50 text-green-900"}`}>
             <div className="text-xs font-medium">{textos.faltan}</div>

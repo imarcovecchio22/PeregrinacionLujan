@@ -1,6 +1,5 @@
 import "server-only";
 import { z } from "zod";
-import { nombreTurno, turnoDe, turnosCheckin } from "@/domain/checkin";
 import { esperadoEnMicro, motivoNoEsperado, type Tramo } from "@/domain/micros";
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "./db";
@@ -24,7 +23,6 @@ export async function cargarDatosMicro(tramo: Tramo): Promise<DatosMicro | null>
   return {
     tramo,
     peregrinacionId: p.id,
-    turnos: turnosCheckin(p.puestos).map((t) => ({ hora: t.hora, nombre: nombreTurno(t) })),
     filas: p.caminantes.map((c) => {
       const esperado = esperadoEnMicro(c, tramo, p.puestos);
       return {
@@ -41,7 +39,6 @@ export async function cargarDatosMicro(tramo: Tramo): Promise<DatosMicro | null>
           transporteVuelta: c.transporteVuelta,
         },
         partida: p.puestos.find((x) => x.id === c.puntoPartidaId)?.nombre ?? "?",
-        turno: turnoDe(c, p.puestos),
         esperado,
         motivo: esperado ? null : motivoNoEsperado(c, tramo, p.puestos),
         abordaje: c.abordajes[0] ? abordajeApi(c.abordajes[0]) : null,

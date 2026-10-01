@@ -39,6 +39,11 @@ export async function cargarDatosPuesto(puestoId: string): Promise<DatosPuesto |
   const puestos = peregrinacion.puestos;
 
   const registros = await prisma.registro.findMany({ where: { puestoId } });
+  const checkins = await prisma.abordaje.findMany({
+    where: { tramo: "CHECKIN", caminante: { peregrinacionId: peregrinacion.id } },
+    select: { caminanteId: true, hora: true },
+  });
+  const checkinDe = new Map(checkins.map((a) => [a.caminanteId, a.hora.toISOString()]));
   const porCaminante = new Map<string, RegistroApi[]>();
   for (const r of registros) {
     porCaminante.set(r.caminanteId, [...(porCaminante.get(r.caminanteId) ?? []), registroApi(r)]);
@@ -72,6 +77,7 @@ export async function cargarDatosPuesto(puestoId: string): Promise<DatosPuesto |
         transporteVuelta: c.transporteVuelta,
       },
       registros: porCaminante.get(c.id) ?? [],
+      checkin: checkinDe.get(c.id) ?? null,
     }));
 
   return {

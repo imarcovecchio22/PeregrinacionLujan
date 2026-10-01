@@ -52,7 +52,7 @@ export function FormPeregrinacion({
 export function FormPuesto({
   puesto,
 }: {
-  puesto: { id: string; orden: number; nombre: string; esPartidaPosible: boolean; registraIngreso: boolean; registraSalida: boolean; horaCheckin: string | null };
+  puesto: { id: string; orden: number; nombre: string; esPartidaPosible: boolean; registraIngreso: boolean; registraSalida: boolean };
 }) {
   const [estado, accion, enviando] = useActionState<ResultadoAdmin, FormData>(guardarPuesto, {});
   const check = (name: keyof typeof puesto, texto: string) => (
@@ -76,17 +76,6 @@ export function FormPuesto({
         {check("registraIngreso", "Registra ingreso")}
         {check("registraSalida", "Registra salida")}
       </div>
-      {puesto.esPartidaPosible && (
-        <label className="flex items-center gap-2 pl-8 text-sm">
-          Check-in en la parroquia a las
-          <input
-            type="time"
-            name="horaCheckin"
-            defaultValue={puesto.horaCheckin ?? ""}
-            className="rounded border border-gray-300 px-2 py-1"
-          />
-        </label>
-      )}
       <div className="pl-8">
         <Estado estado={estado} />
       </div>

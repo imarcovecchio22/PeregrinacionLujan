@@ -6,7 +6,6 @@ import { FormCaminante } from "@/components/caminante/FormCaminante";
 import { RecorridoEditable, RegistrosSobrantes } from "@/components/caminante/RecorridoEditable";
 import { Nav } from "@/components/Nav";
 import { formatFechaHora, formatHora } from "@/domain/hora";
-import { turnoDe } from "@/domain/checkin";
 import { esperadoEnMicro, motivoNoEsperado, NOMBRE_TRAMO, TRAMOS } from "@/domain/micros";
 import { describirPosicion, inconsistencias, posicionActual, registrosPlanificados } from "@/domain/recorrido";
 import { cargarFicha } from "@/lib/caminante";
@@ -80,10 +79,9 @@ export default async function FichaCaminante(props: PageProps<"/caminantes/[id]"
           <ul className="mt-1 grid gap-1 text-sm">
             {(() => {
               const a = abordajes.find((x) => x.tramo === "CHECKIN");
-              const turno = turnoDe(c, puestos);
               return (
                 <li className="flex items-center justify-between gap-2">
-                  <span>Check-in{turno ? ` (${turno})` : ""}</span>
+                  <span>Check-in</span>
                   <span className={a ? "font-semibold text-green-800" : "text-gray-500"}>
                     {a ? `Llegó ${formatHora(a.hora)}` : "No llegó todavía"}
                   </span>

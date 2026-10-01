@@ -28,9 +28,10 @@ Implementadas y testeadas en `src/domain/recorrido.ts`. **No se guardan: se deri
   Salida de Castelar), un registro no corresponde o las horas retroceden, se marca como
   inconsistencia (`inconsistencias()`) en el tablero. Excepción: si falta la Salida de la
   partida pero hay pasos posteriores, se da por hecha (la planilla no tiene columna para
-  Liniers). Única traba, solo en "Mi puesto": no deja marcar la Salida de un puesto que
-  espera Ingreso sin haber marcado el Ingreso (muestra el aviso "Primero tiene que
-  llegar"). La API, la ficha y la importación siguen sin bloquear.
+  Liniers). Trabas, solo en "Mi puesto" (la API, la ficha y la importación no bloquean):
+  sin **check-in** en la parroquia no deja marcar Ingreso ni Salida en ningún puesto (fila
+  "Sin check-in" y aviso "No hizo el check-in"), y no deja marcar la Salida de un puesto
+  que espera Ingreso sin haber marcado el Ingreso (aviso "Primero tiene que llegar").
 
 ### Resumen esperado (test de aceptación, `src/domain/recorrido.test.ts`)
 Con los datos de la planilla 2026 (y con el seed ficticio, que respeta las proporciones):
@@ -147,14 +148,12 @@ Decisión del grupo: **no se asignan vehículos**, solo se marca "subió / no su
   desde el inicio y el celular lo recuerda (`dispositivo.puestoId = "micro:ida"`).
 
 ### Check-in en la parroquia (`/checkin`)
-Antes de salir, todos pasan por la parroquia (San Patricio) a una hora según su partida.
-- Cada punto de partida tiene `Puesto.horaCheckin` ("HH:mm", editable en `/admin`; default
-  Liniers 07:00, La Reja y Rodríguez 14:00). Las partidas con la misma hora forman un turno
-  (`src/domain/checkin.ts`). Se espera a **todos**, vayan en micro o por su cuenta (se marca
-  "Va por su cuenta").
+Antes de salir, todos pasan por la parroquia (San Patricio) y hacen el check-in.
+- Un solo listado con **todos** (sin horarios ni turnos), vayan en micro o por su cuenta
+  (se marca "Va por su cuenta"). Sin check-in no se les marca nada en los puestos.
 - Se guarda como `Abordaje` con tramo `CHECKIN` ("llegó" + hora) y reutiliza la pantalla de
-  micros (`MiMicro` con pestañas por turno; arranca en el turno según la hora). Los de otro
-  turno solo aparecen al buscarlos. Lo marca una sola persona (`dispositivo.puestoId =
-  "micro:checkin"`). Se ve en el tablero, en la ficha y en el resumen de la planilla.
+  micros (`MiMicro`). Lo marca una sola persona (`dispositivo.puestoId = "micro:checkin"`).
+  Se ve en el tablero, en la ficha y en el resumen de la planilla. "Mi puesto" recibe la
+  hora del check-in en cada fila (`FilaPuesto.checkin`) y se actualiza cada 20 s.
 
 **Pendiente (fase 2):** modo offline con cola de sincronización.

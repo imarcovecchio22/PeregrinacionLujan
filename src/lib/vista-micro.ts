@@ -7,13 +7,10 @@ import { coincideCaminante } from "./vista-puesto";
 export type GrupoMicro = "SIN_GUARDAR" | "FALTAN" | "EXTRAS" | "SUBIERON";
 export const ORDEN_GRUPOS_MICRO: GrupoMicro[] = ["SIN_GUARDAR", "FALTAN", "EXTRAS", "SUBIERON"];
 
-/**
- * Grupo "natural" de una fila; las no anotadas que no subieron no se listan (null).
- * Sin `conExtras` (check-in), las de otro turno tampoco se listan aunque hayan llegado.
- */
-export function grupoMicro(f: FilaMicro, conExtras = true): GrupoMicro | null {
+/** Grupo "natural" de una fila; las no anotadas que no subieron no se listan (null). */
+export function grupoMicro(f: FilaMicro): GrupoMicro | null {
   if (f.esperado) return f.abordaje ? "SUBIERON" : "FALTAN";
-  return f.abordaje && conExtras ? "EXTRAS" : null;
+  return f.abordaje ? "EXTRAS" : null;
 }
 
 /**
@@ -25,14 +22,13 @@ export function agruparMicro(
   busqueda: string,
   conError: Set<string> = new Set(),
   fijas: Map<string, GrupoMicro> = new Map(),
-  conExtras = true,
 ): { grupos: Record<GrupoMicro, FilaMicro[]>; noAnotados: FilaMicro[] } {
   const grupos: Record<GrupoMicro, FilaMicro[]> = { SIN_GUARDAR: [], FALTAN: [], EXTRAS: [], SUBIERON: [] };
   const noAnotados: FilaMicro[] = [];
   for (const f of filas) {
     if (!coincideCaminante(f.caminante, busqueda)) continue;
     const id = f.caminante.id;
-    const g = conError.has(id) ? "SIN_GUARDAR" : (fijas.get(id) ?? grupoMicro(f, conExtras));
+    const g = conError.has(id) ? "SIN_GUARDAR" : (fijas.get(id) ?? grupoMicro(f));
     if (g) grupos[g].push(f);
     else if (busqueda.trim()) noAnotados.push(f);
   }
@@ -60,10 +56,10 @@ export function textosTramo(tramo: Tramo): TextosTramo {
       hecho: "Llegó",
       faltan: "Faltan llegar",
       hicieron: "Llegaron",
-      extras: "Llegaron de otro turno",
-      noAnotado: "Es de otro turno:",
-      etiquetaNoAnotado: "Otro turno",
-      hacerIgual: "Llegó igual (es de otro turno)",
+      extras: "Llegaron sin estar en la lista",
+      noAnotado: "No está en la lista:",
+      etiquetaNoAnotado: "No está en la lista",
+      hacerIgual: "Llegó igual",
       marcarPorSuCuenta: true,
     };
   }
@@ -78,16 +74,4 @@ export function textosTramo(tramo: Tramo): TextosTramo {
     hacerIgual: "Subió igual (no estaba anotado)",
     marcarPorSuCuenta: false,
   };
-}
-
-/**
- * Check-in: se muestra un turno por vez. Los del turno elegido son los "esperados"; los de
- * otros turnos aparecen al buscarlos (y si llegaron, como "de otro turno").
- */
-export function filasDelTurno(filas: FilaMicro[], turno: string | null): FilaMicro[] {
-  return filas.map((f) =>
-    f.turno === turno
-      ? { ...f, esperado: true, motivo: null }
-      : { ...f, esperado: false, motivo: `${f.turno ?? "sin horario"}, sale desde ${f.partida}` },
-  );
 }

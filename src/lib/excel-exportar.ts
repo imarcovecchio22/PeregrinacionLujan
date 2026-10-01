@@ -1,7 +1,6 @@
 import "server-only";
 import ExcelJS from "exceljs";
 import { describirPosicion, inconsistencias, posicionActual, registrosPlanificados } from "@/domain/recorrido";
-import { nombreTurno, turnoDe, turnosCheckin } from "@/domain/checkin";
 import { estadoMicro, NOMBRE_TRAMO, TRAMOS, type Tramo } from "@/domain/micros";
 import { calcularResumen } from "@/domain/resumen";
 import { formatHora } from "@/domain/hora";
@@ -219,14 +218,11 @@ function agregarResumen(
       hoja.getCell(fila, 2).font = { bold: true };
       fila++;
     }
-    for (const t of turnosCheckin(puestos)) {
-      const del = datos.caminantes.filter((c) => turnoDe(c, puestos) === t.hora);
-      const llegaron = del.filter((c) => datos.abordajes!.CHECKIN.has(c.id)).length;
-      hoja.getCell(fila, 1).value = `Check-in ${nombreTurno(t)}: llegaron (de ${del.length})`;
-      hoja.getCell(fila, 2).value = llegaron;
-      hoja.getCell(fila, 2).font = { bold: true };
-      fila++;
-    }
+    const checkin = estadoMicro(datos.caminantes, "CHECKIN", puestos, datos.abordajes.CHECKIN);
+    hoja.getCell(fila, 1).value = `Check-in en la parroquia: llegaron (de ${checkin.esperados})`;
+    hoja.getCell(fila, 2).value = checkin.subieron;
+    hoja.getCell(fila, 2).font = { bold: true };
+    fila++;
   }
 
   // Lo que la planilla no tiene columnas para mostrar: abandonos e inconsistencias.

@@ -34,9 +34,6 @@ model Puesto {
   esPartidaPosible Boolean       @default(false)
   registraIngreso  Boolean       @default(true)
   registraSalida   Boolean       @default(true)
-  /// Hora del check-in en la parroquia ("HH:mm") de quienes parten de acá. Solo para partidas;
-  /// las partidas con la misma hora forman un mismo turno (ej. La Reja y Rodríguez a las 14:00).
-  horaCheckin      String?
 
   caminantesQueParten     Caminante[] @relation("PuntoPartida")
   caminantesQueAbandonan  Caminante[] @relation("Abandono")

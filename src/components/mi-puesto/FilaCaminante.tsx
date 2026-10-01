@@ -22,6 +22,7 @@ interface Props {
   onBorrar: (registro: RegistroApi) => void;
   onReintentar: (clave: string) => void;
   onDescartar: (clave: string) => void;
+  onRefrescar: () => void;
 }
 
 const TIPOS: ClaveTipo[] = ["INGRESO", "SALIDA", "ABANDONO"];
@@ -33,11 +34,11 @@ export function etiqueta(tipo: ClaveTipo, esPartida: boolean): string {
 }
 
 function FilaCaminanteBase(props: Props) {
-  const { fila, puesto, puestos, cambios, recientes, onMarcar, onAbandono, onEditarHora, onBorrar, onReintentar, onDescartar } = props;
+  const { fila, puesto, puestos, cambios, recientes, onMarcar, onAbandono, onEditarHora, onBorrar, onReintentar, onDescartar, onRefrescar } = props;
   const c = fila.caminante;
   const esPartida = fila.rol === "PARTIDA";
   const [editando, setEditando] = useState<TipoRegistro | null>(null);
-  const [avisoSinIngreso, setAvisoSinIngreso] = useState(false);
+  const [aviso, setAviso] = useState<"checkin" | "ingreso" | null>(null);
 
   const estado = (t: ClaveTipo) => cambios.get(claveCambio(c.id, t));
   const enviando = TIPOS.some((t) => estado(t)?.estado === "enviando");
@@ -47,15 +48,22 @@ function FilaCaminanteBase(props: Props) {
   const vigentes = registrosVigentes(c, puesto, puestos);
   const abandonoEn = c.abandonoTrasPuestoId ? puestos.find((p) => p.id === c.abandonoTrasPuestoId) : null;
 
+  // Sin check-in en la parroquia no se marca nada en los puestos.
+  const faltaCheckin = !fila.checkin;
   // Para marcar la Salida tiene que haber llegado: si el puesto espera Ingreso y no está, se avisa
   const faltaIngreso = planificados.includes("INGRESO") && !fila.registro("INGRESO");
 
   function marcar(tipo: TipoRegistro) {
-    if (tipo === "SALIDA" && faltaIngreso) {
-      setAvisoSinIngreso(true);
+    if (faltaCheckin) {
+      setAviso("checkin");
+      onRefrescar(); // por si lo acaban de hacer en la parroquia
       return;
     }
-    setAvisoSinIngreso(false);
+    if (tipo === "SALIDA" && faltaIngreso) {
+      setAviso("ingreso");
+      return;
+    }
+    setAviso(null);
     onMarcar(c.id, tipo, `#${c.numero} ${c.nombreCompleto}: ${etiqueta(tipo, esPartida).toLowerCase()}`);
   }
 
@@ -102,6 +110,9 @@ function FilaCaminanteBase(props: Props) {
         </p>
       )}
 
+      {faltaCheckin && (
+        <p className="mt-1 inline-block rounded bg-amber-200 px-1.5 text-sm font-semibold text-amber-900">Sin check-in</p>
+      )}
       {c.dni && <p className="text-sm text-gray-600">DNI {c.dni}</p>}
       {c.telefonos.length > 0 && (
         <div className="mt-1 flex flex-wrap gap-2">
@@ -176,12 +187,19 @@ function FilaCaminanteBase(props: Props) {
         </button>
       </div>
 
-      {avisoSinIngreso && faltaIngreso && (
+      {((aviso === "checkin" && faltaCheckin) || (aviso === "ingreso" && faltaIngreso)) && (
         <div role="alert" className="mt-2 flex items-start gap-2 rounded-md border-2 border-amber-500 bg-amber-50 p-2 text-amber-900">
-          <p className="flex-1">
-            <b>Primero tiene que llegar.</b> Marcá <b>Ingresó</b> para #{c.numero} y después vas a poder marcar la Salida.
-          </p>
-          <button type="button" onClick={() => setAvisoSinIngreso(false)} className="px-2 text-lg font-bold" aria-label="Cerrar aviso">
+          {aviso === "checkin" ? (
+            <p className="flex-1">
+              <b>No hizo el check-in.</b> #{c.numero} tiene que hacer el check-in en la parroquia antes de que se le pueda marcar
+              algo en los puestos. Si ya lo hizo, en unos segundos se actualiza solo.
+            </p>
+          ) : (
+            <p className="flex-1">
+              <b>Primero tiene que llegar.</b> Marcá <b>Ingresó</b> para #{c.numero} y después vas a poder marcar la Salida.
+            </p>
+          )}
+          <button type="button" onClick={() => setAviso(null)} className="px-2 text-lg font-bold" aria-label="Cerrar aviso">
             ✕
           </button>
         </div>
