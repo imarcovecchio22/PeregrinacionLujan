@@ -25,7 +25,9 @@ async function pedir(url: string, init?: RequestInit): Promise<Response> {
   if (res.ok) return res;
   const cuerpo = await res.json().catch(() => null);
   const mensaje = cuerpo?.error ?? `Error ${res.status}`;
-  throw new ErrorApi(mensaje, res.status >= 500 || res.status === 408 || res.status === 429);
+  // 401: venció el acceso. Se deja reintentable para no perder lo cargado: se vuelve a
+  // ingresar el código (por ejemplo en otra pestaña) y se reintenta.
+  throw new ErrorApi(mensaje, res.status >= 500 || res.status === 401 || res.status === 408 || res.status === 429);
 }
 
 export async function obtenerPuesto(puestoId: string): Promise<DatosPuesto> {

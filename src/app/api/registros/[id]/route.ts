@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { borrarRegistro, ErrorDominio, esquemaRegistro, guardarRegistro } from "@/lib/registros";
+import { tieneAcceso } from "@/lib/acceso";
 
 const esquemaId = z.uuid();
 
@@ -11,6 +12,7 @@ function error(e: unknown) {
 }
 
 export async function PUT(req: NextRequest, ctx: RouteContext<"/api/registros/[id]">) {
+  if (!(await tieneAcceso())) return NextResponse.json({ error: "Sin acceso: ingresá el código de nuevo." }, { status: 401 });
   const { id } = await ctx.params;
   if (!esquemaId.safeParse(id).success) return NextResponse.json({ error: "Id inválido." }, { status: 400 });
   const datos = esquemaRegistro.safeParse(await req.json().catch(() => null));
@@ -23,6 +25,7 @@ export async function PUT(req: NextRequest, ctx: RouteContext<"/api/registros/[i
 }
 
 export async function DELETE(_req: NextRequest, ctx: RouteContext<"/api/registros/[id]">) {
+  if (!(await tieneAcceso())) return NextResponse.json({ error: "Sin acceso: ingresá el código de nuevo." }, { status: 401 });
   const { id } = await ctx.params;
   try {
     await borrarRegistro(id);

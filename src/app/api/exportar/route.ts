@@ -1,9 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { generarPlanilla } from "@/lib/excel-exportar";
+import { tieneAcceso } from "@/lib/acceso";
 
 /** Descarga la planilla (formato de la hoja "Listado") de la peregrinación activa o de ?id=. */
 export async function GET(req: NextRequest) {
+  if (!(await tieneAcceso())) return NextResponse.json({ error: "Sin acceso: ingresá el código de nuevo." }, { status: 401 });
   const id = req.nextUrl.searchParams.get("id");
   const p = await prisma.peregrinacion.findFirst({
     where: id ? { id } : { activa: true },

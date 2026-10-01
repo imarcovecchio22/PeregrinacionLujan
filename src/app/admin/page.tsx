@@ -4,6 +4,7 @@ import { FormPeregrinacion, FormPuesto } from "@/components/admin/Formularios";
 import { BotonConfirmar } from "@/components/BotonConfirmar";
 import { Nav } from "@/components/Nav";
 import { prisma } from "@/lib/db";
+import { salir } from "../acceso/acciones";
 import { activarPeregrinacion, eliminarPeregrinacion } from "./acciones";
 
 const tarjeta = "rounded-lg border border-gray-200 bg-white p-3";
@@ -103,6 +104,9 @@ export default async function Admin() {
             </ul>
           </section>
         )}
+        <form action={salir} className="text-center">
+          <button className="py-2 text-sm text-gray-600 underline">Salir en este celular (pide el código otra vez)</button>
+        </form>
       </main>
     </div>
   );

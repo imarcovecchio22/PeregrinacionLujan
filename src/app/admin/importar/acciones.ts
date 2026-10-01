@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { importar, previsualizar, type OpcionesImportacion, type Previsualizacion } from "@/lib/importacion";
+import { exigirAcceso } from "@/lib/acceso";
 
 const MAX_BYTES = 5 * 1024 * 1024;
 
@@ -31,6 +32,7 @@ function leerForm(form: FormData): { archivo: File; opciones: OpcionesImportacio
 }
 
 export async function previsualizarImportacion(form: FormData): Promise<{ error: string } | { previa: Previsualizacion }> {
+  await exigirAcceso();
   const datos = leerForm(form);
   if ("error" in datos) return datos;
   try {
@@ -41,6 +43,7 @@ export async function previsualizarImportacion(form: FormData): Promise<{ error:
 }
 
 export async function confirmarImportacion(form: FormData): Promise<{ error: string }> {
+  await exigirAcceso();
   const datos = leerForm(form);
   if ("error" in datos) return datos;
   try {

@@ -69,10 +69,14 @@ calculado) y una sección "Para revisar" con abandonos e inconsistencias.
 - Verificado con la planilla real 2026: 161 filas, 0 errores, resumen de aceptación exacto.
 
 ## Decisiones
-- **Sin login por ahora.** El dispositivo elige su puesto y un nombre (se guarda en el
-  celular) que va a `Registro.cargadoPor`. Antes del deploy: **código de acceso
-  compartido** (variable de entorno + cookie, en `src/proxy.ts`), porque hay datos
-  personales.
+- **Sin login, con código de acceso compartido** (`ACCESO_CODIGO`): `src/proxy.ts` manda a
+  `/acceso` (o 401 en `/api`), y además cada Server Action y Route Handler verifica con
+  `exigirAcceso()` / `tieneAcceso()` (`src/lib/acceso.ts`) — no depender solo del proxy.
+  Cookie httpOnly de 60 días con un HMAC del código: cambiar el código invalida todas las
+  sesiones. Límite: 10 fallos por IP / 100 en total cada 15 min (tabla `IntentoAcceso`).
+  En desarrollo, con `ACCESO_CODIGO` vacío no se pide; en producción sin código no entra
+  nadie. El dispositivo elige su puesto y un nombre (se guarda en el celular) que va a
+  `Registro.cargadoPor`.
 - `Registro.id` lo genera el cliente (UUID) → reintentos idempotentes; base para la cola
   offline de fase 2.
 - Horas en `timestamptz` (UTC); se muestran y editan siempre en
@@ -105,6 +109,15 @@ calculado) y una sección "Para revisar" con abandonos e inconsistencias.
   `npm run db:seed -- --demo` además simula la caminata a mitad de camino).
 - `npm test` · `npm run lint` · `npx tsc --noEmit` · `npm run dev`.
 
+## Deploy
+- Vercel + Neon. Variables en Vercel: `DATABASE_URL` (Neon **pooled**) y `ACCESO_CODIGO`.
+- Migraciones en producción (desde la PC, con la URL **directa** de Neon, sin "-pooler"):
+  `DATABASE_URL="<url directa>&connect_timeout=30" npx prisma migrate deploy`
+  (Neon suspende la base sin uso y tarda unos segundos en despertar). Las URLs de Neon
+  están en `.env.neon` (no se commitea).
+- Producción NO se siembra: la peregrinación real se carga importando la planilla.
+- Local: `prisma dev` es una sola base; la shadow va por `SHADOW_DATABASE_URL` (otro puerto).
+
 ## Fases
 1. ✅ Setup + DB + seed + dominio con tests.
 2. ~~Auth y roles~~ (pospuesto) → código de acceso compartido en la fase 6.
@@ -115,7 +128,7 @@ calculado) y una sección "Para revisar" con abandonos e inconsistencias.
 5. ✅ Importación / exportación y administración (`/admin`): importar .xlsx/.csv con
    previsualización (en una peregrinación nueva o reemplazando la activa), descargar la
    planilla (`/api/exportar`), editar peregrinación y puestos, activar/eliminar.
-6. Código de acceso + deploy (Vercel + Neon).
+6. ✅ Código de acceso; migraciones aplicadas en Neon. Falta: deploy en Vercel.
 
 **Fase 2 del producto (no implementar todavía):** control de micros (8 combis de vuelta,
 152 lugares; micro de ida a Liniers; vista "subió / no subió") y modo offline con cola

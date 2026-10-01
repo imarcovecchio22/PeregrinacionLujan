@@ -6,6 +6,7 @@ import { z } from "zod";
 import { separarTelefonos } from "@/domain/telefonos";
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db";
+import { exigirAcceso } from "@/lib/acceso";
 
 export interface ResultadoForm {
   error?: string;
@@ -35,6 +36,7 @@ const esquemaCaminante = z.object({
 });
 
 export async function guardarCaminante(_prev: ResultadoForm, form: FormData): Promise<ResultadoForm> {
+  await exigirAcceso();
   const datos = esquemaCaminante.safeParse({
     id: form.get("id"),
     numero: form.get("numero"),
@@ -81,6 +83,7 @@ export async function guardarCaminante(_prev: ResultadoForm, form: FormData): Pr
 
 /** Marca (o quita, con puestoId vacío) el abandono "después del puesto X". */
 export async function marcarAbandono(_prev: ResultadoForm, form: FormData): Promise<ResultadoForm> {
+  await exigirAcceso();
   const caminanteId = String(form.get("caminanteId") ?? "");
   const puestoId = String(form.get("puestoId") ?? "") || null;
   const caminante = await prisma.caminante.findUnique({
@@ -103,6 +106,7 @@ export async function marcarAbandono(_prev: ResultadoForm, form: FormData): Prom
 }
 
 export async function eliminarCaminante(form: FormData) {
+  await exigirAcceso();
   const id = String(form.get("id") ?? "");
   await prisma.caminante.deleteMany({ where: { id } });
   redirect("/tablero");
