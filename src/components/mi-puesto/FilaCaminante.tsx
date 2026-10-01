@@ -37,6 +37,7 @@ function FilaCaminanteBase(props: Props) {
   const c = fila.caminante;
   const esPartida = fila.rol === "PARTIDA";
   const [editando, setEditando] = useState<TipoRegistro | null>(null);
+  const [avisoSinIngreso, setAvisoSinIngreso] = useState(false);
 
   const estado = (t: ClaveTipo) => cambios.get(claveCambio(c.id, t));
   const enviando = TIPOS.some((t) => estado(t)?.estado === "enviando");
@@ -46,8 +47,17 @@ function FilaCaminanteBase(props: Props) {
   const vigentes = registrosVigentes(c, puesto, puestos);
   const abandonoEn = c.abandonoTrasPuestoId ? puestos.find((p) => p.id === c.abandonoTrasPuestoId) : null;
 
-  const marcar = (tipo: TipoRegistro) =>
+  // Para marcar la Salida tiene que haber llegado: si el puesto espera Ingreso y no está, se avisa
+  const faltaIngreso = planificados.includes("INGRESO") && !fila.registro("INGRESO");
+
+  function marcar(tipo: TipoRegistro) {
+    if (tipo === "SALIDA" && faltaIngreso) {
+      setAvisoSinIngreso(true);
+      return;
+    }
+    setAvisoSinIngreso(false);
     onMarcar(c.id, tipo, `#${c.numero} ${c.nombreCompleto}: ${etiqueta(tipo, esPartida).toLowerCase()}`);
+  }
 
   function abandono() {
     if (abandonoEn) {
@@ -165,6 +175,17 @@ function FilaCaminanteBase(props: Props) {
           )}
         </button>
       </div>
+
+      {avisoSinIngreso && faltaIngreso && (
+        <div role="alert" className="mt-2 flex items-start gap-2 rounded-md border-2 border-amber-500 bg-amber-50 p-2 text-amber-900">
+          <p className="flex-1">
+            <b>Primero tiene que llegar.</b> Marcá <b>Ingresó</b> para #{c.numero} y después vas a poder marcar la Salida.
+          </p>
+          <button type="button" onClick={() => setAvisoSinIngreso(false)} className="px-2 text-lg font-bold" aria-label="Cerrar aviso">
+            ✕
+          </button>
+        </div>
+      )}
 
       {editando && fila.registro(editando) && (
         <EditorHora

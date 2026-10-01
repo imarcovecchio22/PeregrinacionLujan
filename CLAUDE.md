@@ -28,7 +28,9 @@ Implementadas y testeadas en `src/domain/recorrido.ts`. **No se guardan: se deri
   Salida de Castelar), un registro no corresponde o las horas retroceden, se marca como
   inconsistencia (`inconsistencias()`) en el tablero. Excepción: si falta la Salida de la
   partida pero hay pasos posteriores, se da por hecha (la planilla no tiene columna para
-  Liniers).
+  Liniers). Única traba, solo en "Mi puesto": no deja marcar la Salida de un puesto que
+  espera Ingreso sin haber marcado el Ingreso (muestra el aviso "Primero tiene que
+  llegar"). La API, la ficha y la importación siguen sin bloquear.
 
 ### Resumen esperado (test de aceptación, `src/domain/recorrido.test.ts`)
 Con los datos de la planilla 2026 (y con el seed ficticio, que respeta las proporciones):
