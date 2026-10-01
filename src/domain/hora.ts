@@ -62,15 +62,18 @@ export function conHora(base: Date, hhmm: string): Date {
 /**
  * Hora editada a mano ("HH:mm") para un registro. Toma el día del valor anterior, pero
  * como la caminata cruza la medianoche, elige el día (anterior, mismo o siguiente) que
- * deja la hora más cerca del valor anterior, sin quedar en el futuro respecto de `ahora`.
+ * deja la hora más cerca del valor anterior, sin quedar en el futuro respecto de `ahora`
+ * (salvo que el valor anterior ya esté en el futuro).
  */
 export function horaEditada(anterior: Date, hhmm: string, ahora: Date = new Date()): Date {
   const DIA = 24 * 60 * 60 * 1000;
   const mismoDia = conHora(anterior, hhmm);
-  const candidatos = [mismoDia.getTime() - DIA, mismoDia.getTime(), mismoDia.getTime() + DIA]
-    .map((t) => new Date(t))
-    .filter((d) => d.getTime() <= ahora.getTime() + 5 * 60 * 1000);
-  if (candidatos.length === 0) return new Date(mismoDia.getTime() - DIA);
+  const todos = [mismoDia.getTime() - DIA, mismoDia.getTime(), mismoDia.getTime() + DIA].map((t) => new Date(t));
+  // Evitar horas en el futuro solo tiene sentido si la referencia es pasada
+  // (con datos de prueba o de una peregrinación que todavía no ocurrió, no se filtra).
+  const limite = ahora.getTime() + 5 * 60 * 1000;
+  const noFuturos = todos.filter((d) => d.getTime() <= limite);
+  const candidatos = anterior.getTime() <= limite && noFuturos.length > 0 ? noFuturos : todos;
   return candidatos.reduce((mejor, d) =>
     Math.abs(d.getTime() - anterior.getTime()) < Math.abs(mejor.getTime() - anterior.getTime()) ? d : mejor,
   );

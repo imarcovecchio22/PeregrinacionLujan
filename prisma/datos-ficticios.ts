@@ -84,3 +84,54 @@ export function generarCaminantesFicticios(): CaminanteFicticio[] {
   caminantes[82].telefonos = ["+54 9 351 555-0103"]; // no AMBA
   return caminantes;
 }
+
+type Paso = { puesto: string; tipo: "INGRESO" | "SALIDA"; minutos: number };
+
+/**
+ * Simula la caminata "a mitad de camino" (para probar el tablero con `--demo`).
+ * Horarios aproximados desde las 20:00 del sábado; cada caminante avanza hasta un punto
+ * distinto. Incluye 2 abandonos y 1 inconsistencia (falta una Salida).
+ */
+export function simularRegistros(caminantes: { id: string; numero: number; partida: string }[]) {
+  const recorridos: Record<string, Paso[]> = {
+    Liniers: [
+      { puesto: "Liniers", tipo: "SALIDA", minutos: 0 },
+      { puesto: "Castelar", tipo: "INGRESO", minutos: 180 },
+      { puesto: "Castelar", tipo: "SALIDA", minutos: 210 },
+      { puesto: "Merlo", tipo: "INGRESO", minutos: 330 },
+      { puesto: "Merlo", tipo: "SALIDA", minutos: 360 },
+      { puesto: "La Reja", tipo: "INGRESO", minutos: 450 },
+    ],
+    "La Reja": [{ puesto: "La Reja", tipo: "SALIDA", minutos: 470 }],
+    Rodríguez: [],
+  };
+  const inicio = new Date("2026-10-03T20:00:00-03:00").getTime();
+  const registros: { caminanteId: string; puesto: string; tipo: "INGRESO" | "SALIDA"; hora: Date }[] = [];
+  const abandonos: { caminanteId: string; puesto: string; hora: Date }[] = [];
+
+  for (const c of caminantes) {
+    const pasos = recorridos[c.partida] ?? [];
+    // Cuántos pasos llegó a hacer: variado según el número.
+    const hechos = c.partida === "Liniers" ? 2 + (c.numero % 5) : c.numero % 3 === 0 ? 1 : 0;
+    pasos.slice(0, Math.min(hechos, pasos.length)).forEach((p) => {
+      registros.push({
+        caminanteId: c.id,
+        puesto: p.puesto,
+        tipo: p.tipo,
+        hora: new Date(inicio + (p.minutos + (c.numero % 20)) * 60_000),
+      });
+    });
+  }
+  const liniers = caminantes.filter((c) => c.partida === "Liniers");
+  // Inconsistencia: a uno que llegó a Merlo le falta la Salida de Castelar.
+  const sinSalida = liniers.find((c) => c.numero % 5 >= 2);
+  const i = registros.findIndex((r) => r.caminanteId === sinSalida?.id && r.puesto === "Castelar" && r.tipo === "SALIDA");
+  if (i >= 0) registros.splice(i, 1);
+  for (const [c, puesto] of [
+    [liniers[3], "Castelar"],
+    [liniers[10], "Liniers"],
+  ] as const) {
+    if (c) abandonos.push({ caminanteId: c.id, puesto, hora: new Date(inicio + 200 * 60_000) });
+  }
+  return { registros, abandonos };
+}

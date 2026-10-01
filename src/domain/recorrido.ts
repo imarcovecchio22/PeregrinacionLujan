@@ -171,3 +171,50 @@ export function inconsistencias(c: CaminanteDom, puestos: PuestoDom[], registros
   }
   return res;
 }
+
+export type Posicion =
+  | { tipo: "SIN_SALIR"; puestoId: string } // todavía no registró la salida de su partida
+  | { tipo: "EN_PUESTO"; puestoId: string } // ingresó y no salió
+  | { tipo: "CAMINANDO"; desdeId: string; hastaId: string } // salió de un puesto, no llegó al siguiente
+  | { tipo: "LLEGO"; puestoId: string }
+  | { tipo: "ABANDONO"; puestoId: string };
+
+/**
+ * Dónde está el caminante según su último registro del recorrido.
+ * Los registros que no le corresponden se ignoran (se reportan en `inconsistencias`).
+ */
+export function posicionActual(c: CaminanteDom, puestos: PuestoDom[], registros: RegistroDom[]): Posicion {
+  if (c.abandonoTrasPuestoId) return { tipo: "ABANDONO", puestoId: c.abandonoTrasPuestoId };
+  const pasos = pasosPlanificados(c, puestos);
+  const hecho = (i: number) =>
+    registros.some((r) => r.caminanteId === c.id && r.puestoId === pasos[i].puesto.id && r.tipo === pasos[i].tipo);
+  let ultimo = -1;
+  for (let i = pasos.length - 1; i >= 0; i--) {
+    if (hecho(i)) {
+      ultimo = i;
+      break;
+    }
+  }
+  if (ultimo === -1) return { tipo: "SIN_SALIR", puestoId: c.puntoPartidaId };
+  const { puesto, tipo } = pasos[ultimo];
+  if (ultimo === pasos.length - 1) return { tipo: "LLEGO", puestoId: puesto.id };
+  if (tipo === "INGRESO") return { tipo: "EN_PUESTO", puestoId: puesto.id };
+  return { tipo: "CAMINANDO", desdeId: puesto.id, hastaId: pasos[ultimo + 1].puesto.id };
+}
+
+/** Texto corto para mostrar una posición. */
+export function describirPosicion(p: Posicion, puestos: PuestoDom[]): string {
+  const n = (id: string) => puestos.find((x) => x.id === id)?.nombre ?? "?";
+  switch (p.tipo) {
+    case "SIN_SALIR":
+      return `Sin salir de ${n(p.puestoId)}`;
+    case "EN_PUESTO":
+      return `En ${n(p.puestoId)}`;
+    case "CAMINANDO":
+      return `${n(p.desdeId)} → ${n(p.hastaId)}`;
+    case "LLEGO":
+      return `Llegó a ${n(p.puestoId)}`;
+    case "ABANDONO":
+      return `Abandonó tras ${n(p.puestoId)}`;
+  }
+}

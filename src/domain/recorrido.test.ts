@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { generarCaminantesFicticios } from "../../prisma/datos-ficticios";
 import { PUESTOS_DEFAULT } from "./puestos-default";
-import { estadoPuesto, inconsistencias, registrosPlanificados, registrosVigentes } from "./recorrido";
+import {
+  describirPosicion,
+  estadoPuesto,
+  inconsistencias,
+  posicionActual,
+  registrosPlanificados,
+  registrosVigentes,
+} from "./recorrido";
 import { calcularResumen } from "./resumen";
 import type { CaminanteDom, PuestoDom, RegistroDom } from "./tipos";
 
@@ -165,5 +172,40 @@ describe("inconsistencias", () => {
     const c = caminante("Rodríguez");
     const regs = [reg("c1", "Rodríguez", "SALIDA", "20:00"), reg("c1", "Luján", "INGRESO", "23:30")];
     expect(inconsistencias(c, puestos, regs)).toEqual([]);
+  });
+});
+
+describe("posición actual", () => {
+  const pos = (c: CaminanteDom, regs: RegistroDom[]) => posicionActual(c, puestos, regs);
+
+  it("sin registros: sin salir de su partida", () => {
+    expect(pos(caminante("La Reja"), [])).toEqual({ tipo: "SIN_SALIR", puestoId: "La Reja" });
+  });
+
+  it("salió de la partida: caminando hacia el siguiente puesto", () => {
+    expect(pos(caminante("Liniers"), [reg("c1", "Liniers", "SALIDA")])).toEqual({
+      tipo: "CAMINANDO",
+      desdeId: "Liniers",
+      hastaId: "Castelar",
+    });
+  });
+
+  it("ingresó y no salió: en el puesto", () => {
+    const regs = [reg("c1", "Rodríguez", "SALIDA"), reg("c1", "Luján", "INGRESO")];
+    expect(pos(caminante("La Reja"), [reg("c1", "La Reja", "SALIDA"), reg("c1", "Rodríguez", "INGRESO")])).toEqual({
+      tipo: "EN_PUESTO",
+      puestoId: "Rodríguez",
+    });
+    expect(pos(caminante("Rodríguez"), regs)).toEqual({ tipo: "LLEGO", puestoId: "Luján" });
+  });
+
+  it("toma el último paso registrado aunque falten anteriores", () => {
+    expect(pos(caminante("Liniers"), [reg("c1", "Merlo", "INGRESO")])).toEqual({ tipo: "EN_PUESTO", puestoId: "Merlo" });
+  });
+
+  it("abandono manda", () => {
+    const c = caminante("Liniers", { abandonoTrasPuestoId: "Castelar" });
+    expect(pos(c, [reg("c1", "Castelar", "INGRESO")])).toEqual({ tipo: "ABANDONO", puestoId: "Castelar" });
+    expect(describirPosicion(pos(c, []), puestos)).toBe("Abandonó tras Castelar");
   });
 });

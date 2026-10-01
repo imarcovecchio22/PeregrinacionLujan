@@ -1,10 +1,11 @@
 // Seed con datos ficticios. Borra TODO y vuelve a crear una peregrinación de ejemplo.
-// Uso: npm run db:seed
+// Uso: npm run db:seed            (sin registros)
+//      npm run db:seed -- --demo  (simula la caminata a mitad de camino, para probar el tablero)
 
 import "dotenv/config";
 import { prisma } from "../src/lib/db";
 import { PUESTOS_DEFAULT } from "../src/domain/puestos-default";
-import { generarCaminantesFicticios } from "./datos-ficticios";
+import { generarCaminantesFicticios, simularRegistros } from "./datos-ficticios";
 
 async function main() {
   await prisma.peregrinacion.deleteMany();
@@ -32,6 +33,30 @@ async function main() {
       puntoPartidaId: idPuesto.get(c.partida)!,
     })),
   });
+
+  if (process.argv.includes("--demo")) {
+    const creados = await prisma.caminante.findMany({ where: { peregrinacionId: peregrinacion.id } });
+    const sim = simularRegistros(
+      creados.map((c) => ({ id: c.id, numero: c.numero, partida: peregrinacion.puestos.find((p) => p.id === c.puntoPartidaId)!.nombre })),
+    );
+    await prisma.registro.createMany({
+      data: sim.registros.map((r) => ({
+        id: crypto.randomUUID(),
+        caminanteId: r.caminanteId,
+        puestoId: idPuesto.get(r.puesto)!,
+        tipo: r.tipo,
+        hora: r.hora,
+        cargadoPor: "Demo",
+      })),
+    });
+    for (const a of sim.abandonos) {
+      await prisma.caminante.update({
+        where: { id: a.caminanteId },
+        data: { abandonoTrasPuestoId: idPuesto.get(a.puesto)!, abandonoHora: a.hora },
+      });
+    }
+    console.log(`Demo: ${sim.registros.length} registros y ${sim.abandonos.length} abandonos simulados.`);
+  }
 
   console.log(`Seed listo: "${peregrinacion.nombre}" con ${caminantes.length} caminantes ficticios.`);
 }

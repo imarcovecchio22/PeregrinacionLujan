@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { memo, useState } from "react";
 import { formatHora } from "@/domain/hora";
 import type { PuestoDom, TipoRegistro } from "@/domain/tipos";
@@ -45,6 +46,9 @@ function FilaCaminanteBase({ fila, puestos, cambios, onMarcar, onEditarHora, onB
         {abandono && (
           <span className="rounded bg-gray-200 px-1.5 text-xs font-semibold text-gray-700">Abandonó tras {abandono}</span>
         )}
+        <Link href={`/caminantes/${c.id}`} className="ml-auto py-1 pl-2 text-sm text-blue-700">
+          Ficha ›
+        </Link>
       </div>
 
       {c.telefonos.length > 0 && (

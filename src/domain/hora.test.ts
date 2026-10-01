@@ -39,4 +39,9 @@ describe("horaEditada (la caminata cruza la medianoche)", () => {
     const anterior = ar("2026-10-03T23:50:00");
     expect(horaEditada(anterior, "00:05", ar("2026-10-03T23:55:00"))).toEqual(ar("2026-10-03T00:05:00"));
   });
+
+  it("con una referencia futura (datos de prueba) elige la más cercana", () => {
+    const anterior = ar("2026-10-03T23:03:00");
+    expect(horaEditada(anterior, "23:30", ar("2026-10-01T12:00:00"))).toEqual(ar("2026-10-03T23:30:00"));
+  });
 });

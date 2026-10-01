@@ -6,7 +6,7 @@ Ver `CLAUDE.md` para el dominio y las decisiones.
 npm install
 npm run db:dev       # Postgres local (sin Docker)
 npm run db:migrate   # aplica migraciones
-npm run db:seed      # datos ficticios
+npm run db:seed      # datos ficticios (agregar -- --demo para simular la caminata)
 npm run dev
 npm test
 ```

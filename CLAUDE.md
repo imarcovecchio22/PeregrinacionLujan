@@ -60,8 +60,12 @@ La hoja "Resumen y control" se regenera con fórmulas COUNTIF.
 - `Registro.id` lo genera el cliente (UUID) → reintentos idempotentes; base para la cola
   offline de fase 2.
 - Horas en `timestamptz` (UTC); se muestran y editan siempre en
-  `America/Argentina/Buenos_Aires`. La caminata cruza la medianoche: al importar horas
-  sin fecha, se infiere el día recorriendo el trayecto.
+  `America/Argentina/Buenos_Aires`. La caminata cruza la medianoche: una hora "HH:mm"
+  cargada a mano toma el día del registro vecino (`horaEditada`); al importar horas sin
+  fecha, se infiere el día recorriendo el trayecto.
+- Formularios con Server Actions (`src/app/caminantes/acciones.ts`). Ojo: con
+  `<form action>` React 19 resetea los campos aunque haya error; en formularios largos
+  usar `onSubmit` + `startTransition` (ver `FormCaminante`).
 - Se cargan las ~161 personas en memoria y se calcula con `src/domain/` (en el servidor,
   y en el navegador para los contadores de "Mi puesto", así reflejan los cambios al instante).
 - Guardado en "Mi puesto" (`useRegistrosPuesto`): cambio optimista, envío serializado por
@@ -81,14 +85,18 @@ La hoja "Resumen y control" se regenera con fórmulas COUNTIF.
 
 ## Comandos
 - `npm run db:dev` — Postgres local (`prisma dev`, sin Docker).
-- `npm run db:migrate` · `npm run db:seed` (borra todo y carga datos ficticios).
+- `npm run db:migrate` · `npm run db:seed` (borra todo y carga datos ficticios;
+  `npm run db:seed -- --demo` además simula la caminata a mitad de camino).
 - `npm test` · `npm run lint` · `npx tsc --noEmit` · `npm run dev`.
 
 ## Fases
 1. ✅ Setup + DB + seed + dominio con tests.
 2. ~~Auth y roles~~ (pospuesto) → código de acceso compartido en la fase 6.
 3. ✅ Vista "Mi puesto" (`/puesto/[id]`; selector de puesto y nombre en `/`).
-4. Tablero, resumen y ficha (con abandono e inconsistencias).
+4. ✅ Tablero (`/tablero`: resumen, por puesto en vivo, "¿dónde están?", matriz con
+   inconsistencias) y ficha (`/caminantes/[id]`: recorrido editable, historial, abandono,
+   editar/eliminar; alta en `/caminantes/nuevo`).
+   Pendiente: ABM de puestos y de peregrinaciones (crear la del año siguiente).
 5. Importación / exportación XLSX.
 6. Código de acceso + deploy (Vercel + Neon).
 
