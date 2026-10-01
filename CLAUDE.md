@@ -26,7 +26,9 @@ Implementadas y testeadas en `src/domain/recorrido.ts`. **No se guardan: se deri
   más adelante. Los totales "pasan por" (plan) no cambian; los "vigentes" sí.
 - **Orden de carga**: nunca se bloquea. Si falta un paso anterior (Ingreso en Merlo sin
   Salida de Castelar), un registro no corresponde o las horas retroceden, se marca como
-  inconsistencia (`inconsistencias()`) en el tablero.
+  inconsistencia (`inconsistencias()`) en el tablero. Excepción: si falta la Salida de la
+  partida pero hay pasos posteriores, se da por hecha (la planilla no tiene columna para
+  Liniers).
 
 ### Resumen esperado (test de aceptación, `src/domain/recorrido.test.ts`)
 Con los datos de la planilla 2026 (y con el seed ficticio, que respeta las proporciones):
@@ -50,7 +52,21 @@ G-H Castelar I/S · I-J Merlo I/S · K-L La Reja I/S · M-N Rodríguez I/S · O 
 P Vuelta desde Luján. Liniers no tiene columnas de hora (en la planilla, Liniers es
 "Ida a Liniers"): la Salida de Liniers queda solo en la app. La Salida de partida de
 La Reja/Rodríguez va en la columna Salida de ese puesto (con el Ingreso en "NA").
-La hoja "Resumen y control" se regenera con fórmulas COUNTIF.
+La hoja "Resumen y control" se regenera con fórmulas COUNTIF (con el resultado ya
+calculado) y una sección "Para revisar" con abandonos e inconsistencias.
+- Estructura de columnas: `src/domain/planilla.ts` (única fuente para importar y exportar).
+- Lectura: `src/domain/importar.ts` (puro, con tests) sobre una matriz de celdas que arma
+  `src/lib/excel-leer.ts` (ExcelJS / CSV propio). Escritura: `src/lib/excel-exportar.ts`
+  (ExcelJS, porque SheetJS community no escribe estilos).
+- Partida: columna "Sale desde"; las "NA" la validan (o la infieren si falta la columna).
+- Horas sin fecha: la primera hora de cada caminante anterior al "corte" (12:00 por
+  defecto, editable al importar) es del día siguiente; luego, cada hora que retrocede
+  suma un día.
+- Advertencias (no bloquean): posibles duplicados (mismo DNI, o mismas palabras del nombre
+  en cualquier orden), teléfonos compartidos, varios teléfonos en una celda, no AMBA,
+  "Sale desde" que no coincide con las NA, transporte u horas ilegibles. Errores (la fila
+  no se importa): sin nombre, número inválido o repetido, partida desconocida.
+- Verificado con la planilla real 2026: 161 filas, 0 errores, resumen de aceptación exacto.
 
 ## Decisiones
 - **Sin login por ahora.** El dispositivo elige su puesto y un nombre (se guarda en el
@@ -96,8 +112,9 @@ La hoja "Resumen y control" se regenera con fórmulas COUNTIF.
 4. ✅ Tablero (`/tablero`: resumen, por puesto en vivo, "¿dónde están?", matriz con
    inconsistencias) y ficha (`/caminantes/[id]`: recorrido editable, historial, abandono,
    editar/eliminar; alta en `/caminantes/nuevo`).
-   Pendiente: ABM de puestos y de peregrinaciones (crear la del año siguiente).
-5. Importación / exportación XLSX.
+5. ✅ Importación / exportación y administración (`/admin`): importar .xlsx/.csv con
+   previsualización (en una peregrinación nueva o reemplazando la activa), descargar la
+   planilla (`/api/exportar`), editar peregrinación y puestos, activar/eliminar.
 6. Código de acceso + deploy (Vercel + Neon).
 
 **Fase 2 del producto (no implementar todavía):** control de micros (8 combis de vuelta,

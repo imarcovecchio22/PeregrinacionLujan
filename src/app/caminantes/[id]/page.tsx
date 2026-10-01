@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { BotonEliminar } from "@/components/caminante/BotonEliminar";
+import { BotonConfirmar } from "@/components/BotonConfirmar";
 import { FormAbandono } from "@/components/caminante/FormAbandono";
 import { FormCaminante } from "@/components/caminante/FormCaminante";
 import { RecorridoEditable, RegistrosSobrantes } from "@/components/caminante/RecorridoEditable";
@@ -111,7 +111,12 @@ export default async function FichaCaminante(props: PageProps<"/caminantes/[id]"
           </div>
           <form action={eliminarCaminante} className="mt-6 border-t border-gray-200 pt-3">
             <input type="hidden" name="id" value={c.id} />
-            <BotonEliminar numero={c.numero} />
+            <BotonConfirmar
+              mensaje={`¿Eliminar al caminante #${c.numero} y todos sus registros? No se puede deshacer.`}
+              className="w-full rounded-xl border-2 border-red-300 py-2 font-semibold text-red-700"
+            >
+              Eliminar caminante #{c.numero} y sus registros
+            </BotonConfirmar>
           </form>
         </details>
 

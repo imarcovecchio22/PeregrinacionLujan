@@ -132,7 +132,8 @@ export function estadoPuesto(
 /**
  * Inconsistencias de carga (no bloquean: solo se marcan en el tablero).
  * - registro en un puesto/tipo que no le corresponde;
- * - falta un paso anterior a uno ya registrado (ej.: Ingreso en Merlo sin Salida de Castelar);
+ * - falta un paso anterior a uno ya registrado (ej.: Ingreso en Merlo sin Salida de Castelar),
+ *   salvo la Salida de la partida, que queda implícita;
  * - horas que retroceden a lo largo del recorrido.
  */
 export function inconsistencias(c: CaminanteDom, puestos: PuestoDom[], registros: RegistroDom[]): string[] {
@@ -154,6 +155,9 @@ export function inconsistencias(c: CaminanteDom, puestos: PuestoDom[], registros
   const ultimoHecho = pasos.findLastIndex((s) => registro(s.puesto.id, s.tipo));
   for (let i = 0; i < ultimoHecho; i++) {
     const s = pasos[i];
+    // La Salida de la partida es implícita si ya hay registros posteriores (además, la
+    // planilla no tiene columna para la partida de Liniers): no se marca como faltante.
+    if (s.puesto.id === c.puntoPartidaId) continue;
     if (!registro(s.puesto.id, s.tipo)) {
       res.push(`Falta ${txt(s.tipo)} en ${s.puesto.nombre}`);
     }

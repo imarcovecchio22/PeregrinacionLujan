@@ -44,7 +44,12 @@ export function Tablero({ datos }: { datos: DatosTablero }) {
     <main className="mx-auto max-w-6xl p-3">
       <div className="flex items-baseline justify-between gap-2">
         <h1 className="text-lg font-bold">{datos.nombre}</h1>
-        <span className="text-xs text-gray-500">Actualizado {formatHora(new Date(datos.generado))}</span>
+        <span className="text-right text-xs text-gray-500">
+          Actualizado {formatHora(new Date(datos.generado))} ·{" "}
+          <a href="/api/exportar" className="text-blue-700">
+            Descargar planilla
+          </a>
+        </span>
       </div>
 
       <div className="mt-2">

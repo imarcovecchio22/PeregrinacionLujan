@@ -168,6 +168,12 @@ describe("inconsistencias", () => {
     ]);
   });
 
+  it("sin Salida de la partida pero con pasos posteriores: no es inconsistencia (salió)", () => {
+    const regs = [reg("c1", "Castelar", "INGRESO", "08:00")];
+    expect(inconsistencias(caminante("Liniers"), puestos, regs)).toEqual([]);
+    expect(inconsistencias(caminante("La Reja"), puestos, [reg("c1", "Rodríguez", "INGRESO")])).toEqual([]);
+  });
+
   it("recorrido completo y en orden: sin inconsistencias", () => {
     const c = caminante("Rodríguez");
     const regs = [reg("c1", "Rodríguez", "SALIDA", "20:00"), reg("c1", "Luján", "INGRESO", "23:30")];

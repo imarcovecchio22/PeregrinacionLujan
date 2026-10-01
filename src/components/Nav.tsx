@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-export function Nav({ actual }: { actual?: "tablero" | "nuevo" }) {
+export function Nav({ actual }: { actual?: "tablero" | "nuevo" | "admin" }) {
   const clase = (activo: boolean) =>
     `rounded-md px-3 py-2 text-sm font-medium ${activo ? "bg-gray-900 text-white" : "text-gray-700 active:bg-gray-200"}`;
   return (
@@ -13,6 +13,9 @@ export function Nav({ actual }: { actual?: "tablero" | "nuevo" }) {
       </Link>
       <Link href="/caminantes/nuevo" className={clase(actual === "nuevo")}>
         + Caminante
+      </Link>
+      <Link href="/admin" className={clase(actual === "admin")}>
+        Admin
       </Link>
     </nav>
   );
