@@ -17,5 +17,6 @@ export function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!acceso|_next/static|_next/image|favicon.ico|icon|apple-icon|manifest).*)"],
+  // Públicos: la pantalla de acceso y lo que muestra (escudo, íconos).
+  matcher: ["/((?!acceso|_next/static|_next/image|favicon.ico|icon|apple-icon|manifest|escudo.webp).*)"],
 };
