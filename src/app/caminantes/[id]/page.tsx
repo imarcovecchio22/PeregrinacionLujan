@@ -8,6 +8,7 @@ import { Nav } from "@/components/Nav";
 import { formatFechaHora, formatHora } from "@/domain/hora";
 import { esperadoEnMicro, motivoNoEsperado, NOMBRE_TRAMO, TRAMOS } from "@/domain/micros";
 import { describirPosicion, inconsistencias, posicionActual, registrosPlanificados } from "@/domain/recorrido";
+import { esAdmin } from "@/lib/acceso";
 import { cargarFicha } from "@/lib/caminante";
 import { hrefTelefono } from "@/lib/vista-puesto";
 import { eliminarCaminante } from "../acciones";
@@ -16,6 +17,7 @@ export default async function FichaCaminante(props: PageProps<"/caminantes/[id]"
   const { id } = await props.params;
   const ficha = await cargarFicha(id);
   if (!ficha) notFound();
+  const admin = await esAdmin();
   const { caminante: c, puestos, registros, registrosDom, abordajes } = ficha;
 
   const partida = puestos.find((p) => p.id === c.puntoPartidaId)!;
@@ -140,15 +142,17 @@ export default async function FichaCaminante(props: PageProps<"/caminantes/[id]"
               primerPuestoId={puestos[0].id}
             />
           </div>
-          <form action={eliminarCaminante} className="mt-6 border-t border-gray-200 pt-3">
-            <input type="hidden" name="id" value={c.id} />
-            <BotonConfirmar
-              mensaje={`¿Eliminar al caminante #${c.numero} y todos sus registros? No se puede deshacer.`}
-              className="w-full rounded-xl border-2 border-red-300 py-2 font-semibold text-red-700"
-            >
-              Eliminar caminante #{c.numero} y sus registros
-            </BotonConfirmar>
-          </form>
+          {admin && (
+            <form action={eliminarCaminante} className="mt-6 border-t border-gray-200 pt-3">
+              <input type="hidden" name="id" value={c.id} />
+              <BotonConfirmar
+                mensaje={`¿Eliminar al caminante #${c.numero} y todos sus registros? No se puede deshacer.`}
+                className="w-full rounded-xl border-2 border-red-300 py-2 font-semibold text-red-700"
+              >
+                Eliminar caminante #{c.numero} y sus registros
+              </BotonConfirmar>
+            </form>
+          )}
         </details>
 
         <Link href="/tablero" className="text-center text-blue-700">

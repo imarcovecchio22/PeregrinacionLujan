@@ -1,11 +1,13 @@
 import { connection } from "next/server";
 import { FormCaminante } from "@/components/caminante/FormCaminante";
 import { Nav } from "@/components/Nav";
+import { exigirAdminPagina } from "@/lib/acceso";
 import { siguienteNumero } from "@/lib/caminante";
 import { cargarPeregrinacionActiva } from "@/lib/datos";
 
 export default async function NuevoCaminante() {
   await connection();
+  await exigirAdminPagina("/caminantes/nuevo");
   const peregrinacion = await cargarPeregrinacionActiva();
   if (!peregrinacion) return <p className="p-4">No hay ninguna peregrinación activa.</p>;
   const puestos = peregrinacion.puestos;

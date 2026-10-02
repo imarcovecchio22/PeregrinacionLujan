@@ -5,7 +5,7 @@ import { z } from "zod";
 import { PUESTOS_DEFAULT } from "@/domain/puestos-default";
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db";
-import { exigirAcceso } from "@/lib/acceso";
+import { exigirAdmin } from "@/lib/acceso";
 
 export interface ResultadoAdmin {
   error?: string;
@@ -20,7 +20,7 @@ const esquemaPeregrinacion = z.object({
 
 /** Crea (sin id, con los puestos de la activa y sin caminantes) o edita una peregrinación. */
 export async function guardarPeregrinacion(_prev: ResultadoAdmin, form: FormData): Promise<ResultadoAdmin> {
-  await exigirAcceso();
+  await exigirAdmin();
   const d = esquemaPeregrinacion.safeParse({
     id: form.get("id") || undefined,
     nombre: form.get("nombre"),
@@ -59,7 +59,7 @@ export async function guardarPeregrinacion(_prev: ResultadoAdmin, form: FormData
 }
 
 export async function activarPeregrinacion(form: FormData) {
-  await exigirAcceso();
+  await exigirAdmin();
   const id = String(form.get("id") ?? "");
   await prisma.$transaction([
     prisma.peregrinacion.updateMany({ data: { activa: false } }),
@@ -69,7 +69,7 @@ export async function activarPeregrinacion(form: FormData) {
 }
 
 export async function eliminarPeregrinacion(form: FormData) {
-  await exigirAcceso();
+  await exigirAdmin();
   const id = String(form.get("id") ?? "");
   // Nunca se borra la activa desde acá.
   await prisma.peregrinacion.deleteMany({ where: { id, activa: false } });
@@ -85,7 +85,7 @@ const esquemaPuesto = z.object({
 });
 
 export async function guardarPuesto(_prev: ResultadoAdmin, form: FormData): Promise<ResultadoAdmin> {
-  await exigirAcceso();
+  await exigirAdmin();
   const d = esquemaPuesto.safeParse({
     id: form.get("id"),
     nombre: form.get("nombre"),

@@ -1,15 +1,15 @@
 "use client";
 
 import { useActionState } from "react";
-import { ingresar } from "./acciones";
+import { ingresar, ingresarAdmin } from "./acciones";
 
-export function FormAcceso({ siguiente }: { siguiente: string }) {
-  const [estado, accion, enviando] = useActionState(ingresar, {});
+export function FormAcceso({ siguiente, admin = false }: { siguiente: string; admin?: boolean }) {
+  const [estado, accion, enviando] = useActionState(admin ? ingresarAdmin : ingresar, {});
   return (
     <form action={accion} className="grid gap-3">
       <input type="hidden" name="siguiente" value={siguiente} />
       <label htmlFor="codigo" className="text-sm font-semibold text-gray-700">
-        Código de acceso
+        {admin ? "Código de administrador" : "Código de acceso"}
       </label>
       <input
         id="codigo"

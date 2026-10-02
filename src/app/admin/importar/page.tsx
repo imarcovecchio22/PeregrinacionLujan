@@ -1,10 +1,12 @@
 import { connection } from "next/server";
 import { Importador } from "@/components/admin/Importador";
 import { Nav } from "@/components/Nav";
+import { exigirAdminPagina } from "@/lib/acceso";
 import { prisma } from "@/lib/db";
 
 export default async function PaginaImportar() {
   await connection();
+  await exigirAdminPagina("/admin/importar");
   const activa = await prisma.peregrinacion.findFirst({ where: { activa: true }, select: { nombre: true } });
   const anio = new Date().getFullYear();
   return (

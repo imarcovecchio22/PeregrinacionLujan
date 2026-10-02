@@ -6,7 +6,7 @@ import { z } from "zod";
 import { separarTelefonos } from "@/domain/telefonos";
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db";
-import { exigirAcceso } from "@/lib/acceso";
+import { exigirAcceso, exigirAdmin } from "@/lib/acceso";
 import { ErrorDominio, guardarAbandono } from "@/lib/registros";
 
 export interface ResultadoForm {
@@ -51,6 +51,8 @@ export async function guardarCaminante(_prev: ResultadoForm, form: FormData): Pr
   });
   if (!datos.success) return { error: datos.error.issues[0].message };
   const { id, ...d } = datos.data;
+  // Editar datos lo puede cualquier coordinador; dar de alta, solo el administrador.
+  if (!id) await exigirAdmin();
 
   const peregrinacion = await prisma.peregrinacion.findFirst({
     where: { activa: true },
@@ -97,7 +99,7 @@ export async function marcarAbandono(_prev: ResultadoForm, form: FormData): Prom
 }
 
 export async function eliminarCaminante(form: FormData) {
-  await exigirAcceso();
+  await exigirAdmin();
   const id = String(form.get("id") ?? "");
   await prisma.caminante.deleteMany({ where: { id } });
   redirect("/tablero");

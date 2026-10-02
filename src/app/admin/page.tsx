@@ -3,8 +3,9 @@ import { connection } from "next/server";
 import { FormPeregrinacion, FormPuesto } from "@/components/admin/Formularios";
 import { BotonConfirmar } from "@/components/BotonConfirmar";
 import { Nav } from "@/components/Nav";
+import { exigirAdminPagina } from "@/lib/acceso";
 import { prisma } from "@/lib/db";
-import { salir } from "../acceso/acciones";
+import { salir, salirAdmin } from "../acceso/acciones";
 import { activarPeregrinacion, eliminarPeregrinacion } from "./acciones";
 
 const tarjeta = "rounded-lg border border-gray-200 bg-white p-3";
@@ -12,6 +13,7 @@ const fecha = (d: Date) => d.toISOString().slice(0, 10);
 
 export default async function Admin() {
   await connection();
+  await exigirAdminPagina("/admin");
   const peregrinaciones = await prisma.peregrinacion.findMany({
     orderBy: { fechaInicio: "desc" },
     include: { puestos: { orderBy: { orden: "asc" } }, _count: { select: { caminantes: true } } },
@@ -104,6 +106,9 @@ export default async function Admin() {
             </ul>
           </section>
         )}
+        <form action={salirAdmin} className="text-center">
+          <button className="py-2 text-sm text-gray-600 underline">Dejar de ser admin en este celular</button>
+        </form>
         <form action={salir} className="text-center">
           <button className="py-2 text-sm text-gray-600 underline">Salir en este celular (pide el código otra vez)</button>
         </form>

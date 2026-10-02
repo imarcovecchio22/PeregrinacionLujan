@@ -84,6 +84,11 @@ calculado) y una sección "Para revisar" con abandonos e inconsistencias.
   En desarrollo, con `ACCESO_CODIGO` vacío no se pide; en producción sin código no entra
   nadie. El dispositivo elige su puesto y un nombre (se guarda en el celular) que va a
   `Registro.cargadoPor`.
+- **Administrador** con un segundo código (`ADMIN_CODIGO`, cookie `admin` aparte, mismo
+  límite de intentos, se ingresa en `/admin/ingresar`): solo él usa `/admin`, la importación,
+  `/caminantes/nuevo`, eliminar caminantes y `/api/exportar`. Páginas con
+  `exigirAdminPagina()`, acciones con `exigirAdmin()`. Los coordinadores sí editan los datos
+  de la ficha. En desarrollo sin `ADMIN_CODIGO` todos son admin; en producción sin código, nadie.
 - `Registro.id` lo genera el cliente (UUID) → reintentos idempotentes; base para la cola
   offline de fase 2.
 - Horas en `timestamptz` (UTC); se muestran y editan siempre en
@@ -120,7 +125,7 @@ calculado) y una sección "Para revisar" con abandonos e inconsistencias.
 - `npm test` · `npm run lint` · `npx tsc --noEmit` · `npm run dev`.
 
 ## Deploy
-- Vercel + Neon. Variables en Vercel: `DATABASE_URL` (Neon **pooled**) y `ACCESO_CODIGO`.
+- Vercel + Neon. Variables en Vercel: `DATABASE_URL` (Neon **pooled**), `ACCESO_CODIGO` y `ADMIN_CODIGO`.
 - Migraciones en producción (desde la PC, con la URL **directa** de Neon, sin "-pooler"):
   `DATABASE_URL="<url directa>&connect_timeout=30" npx prisma migrate deploy`
   (Neon suspende la base sin uso y tarda unos segundos en despertar). Las URLs de Neon
